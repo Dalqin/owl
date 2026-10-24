@@ -22,7 +22,7 @@ const TABS = [
 //   loadPreview({ choices, datapaths })  asks the core what those answers lead to
 //   initial                             { choices, datapaths } the screen starts from
 //   saveLabel / onSave(manifest)        keep the current answers
-//   actions({ changed })                extra buttons (move, remove) for the header; told if there are unsaved answers
+//   actions({ changed })                extra buttons (move, remove) for the header; told if the player has unsaved answers
 //
 // A mod already on the list is only saved when its answers changed; a new mod
 // can be saved as soon as a folder is decided.
@@ -98,6 +98,9 @@ export default function ModWorkspace({
   const needsPicker = !fomod && candidates.length > 1;
   const decided = (preview?.manifest.decisions.datapaths.length ?? 0) > 0;
   const changed = Boolean(preview?.changed);
+  // What the player has typed since the screen opened. `changed` can also be true with
+  // nothing typed: the mod was saved by an older Owl and the installer now reads differently.
+  const edited = JSON.stringify([choices, datapaths]) !== JSON.stringify([initial.choices, initial.datapaths]);
   const open = preview?.unanswered ?? [];
   const canSave = decided && open.length === 0 && (newMod || changed) && !busy;
 
@@ -109,7 +112,7 @@ export default function ModWorkspace({
           Folder: {folder}
           {folderMissing ? " (not found)" : ""}
         </p>
-        {actions?.({ changed })}
+        {actions?.({ changed: edited })}
       </header>
 
       {error && <p className="note error" role="alert">{error}</p>}
@@ -168,7 +171,7 @@ export default function ModWorkspace({
               <button onClick={save} disabled={!canSave}>
                 {busy ? "Saving…" : saveLabel}
               </button>
-              {!newMod && changed && (
+              {!newMod && edited && (
                 <button className="secondary" onClick={discard} disabled={busy}>
                   Discard
                 </button>
@@ -182,7 +185,13 @@ export default function ModWorkspace({
             ) : (
               newMod && !decided && <p className="muted">Answer the questions above to add this mod.</p>
             )}
-            {!newMod && changed && <p className="muted">These answers are not saved yet.</p>}
+            {!newMod && edited && <p className="muted">These answers are not saved yet.</p>}
+            {!newMod && changed && !edited && (
+              <p className="muted">
+                Owl reads this mod's installer differently than when you added it. Press {saveLabel} to update it; Move
+                and Remove work either way.
+              </p>
+            )}
           </>
         ) : tab === "notes" ? (
           <AuthorNotes notes={preview.manifest.derived.notes} />
