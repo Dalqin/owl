@@ -15,7 +15,7 @@ export default function AllModules({ view, cfgPath, profileFile, onReload, onAdd
     return (
       <section aria-label="Review and finalize">
         <p>You have not added any mods yet.</p>
-        <button onClick={onAdd}>Add a mod</button>
+        <button onClick={onAdd}>Manage my sources</button>
       </section>
     );
   }

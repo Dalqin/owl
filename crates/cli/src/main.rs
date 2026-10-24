@@ -159,7 +159,8 @@ fn cmd_library(dir: &Path, json: bool) -> Result<ExitCode> {
         return Err(format!("{} is not a folder", dir.display()).into());
     }
     let kind = library::classify(dir);
-    let listing = (kind == library::FolderKind::Library).then(|| library::read_library(dir, &[]));
+    let listing =
+        (kind == library::FolderKind::Library).then(|| library::read_library(dir, &[], &[]));
     if json {
         let value = serde_json::json!({ "kind": kind, "library": listing });
         println!("{}", serde_json::to_string_pretty(&value)?);

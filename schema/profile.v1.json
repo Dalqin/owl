@@ -10,20 +10,6 @@
         "type": "string"
       }
     },
-    "individuals": {
-      "description": "Folders of single mods the player picked but has not added yet, so they\ncan be read and added later. A mod leaves this list when it is added.",
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "libraries": {
-      "description": "Folders that hold many mods, kept so their mods can be worked through\nacross sessions.",
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
     "mods": {
       "description": "In load order: earlier entries load first.",
       "type": "array",
@@ -35,6 +21,13 @@
       "type": "integer",
       "format": "uint32",
       "minimum": 0
+    },
+    "sources": {
+      "description": "Places the player chose for Owl to look for mods, kept across sessions.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Source"
+      }
     }
   },
   "required": [
@@ -42,6 +35,21 @@
     "mods"
   ],
   "$defs": {
+    "FolderKind": {
+      "description": "What a folder the player chose is.",
+      "oneOf": [
+        {
+          "description": "One mod: its files, plugins or installer are right there.",
+          "type": "string",
+          "const": "mod"
+        },
+        {
+          "description": "Many mods side by side.",
+          "type": "string",
+          "const": "library"
+        }
+      ]
+    },
     "ProfileMod": {
       "type": "object",
       "properties": {
@@ -57,6 +65,23 @@
       "required": [
         "manifest",
         "root"
+      ]
+    },
+    "Source": {
+      "description": "A place on disk the player chose for Owl to look for mods.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "description": "`library` for a folder that holds many mods, `mod` for the folder of one\nmod that is not on the list yet (it leaves the sources once it is added).",
+          "$ref": "#/$defs/FolderKind"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "kind"
       ]
     }
   }

@@ -20,24 +20,26 @@ export default function Help({ onAdd = () => {} }) {
         <p>Then show Owl where they are:</p>
         <ul>
           <li>
-            <strong>+ Add a mod</strong> opens a folder chooser. Pick one mod's folder and it appears under
-            <em> Available to add</em> as an individual mod.
+            <strong>Manage my sources</strong> shows the places Owl looks for mods, and explains what a source is.
+            Press <strong>Add a source</strong> to open a folder chooser. Pick one mod's folder and it becomes a
+            <em> source</em> until you add the mod.
           </li>
           <li>
             Pick a folder that holds many mods (your whole downloads folder, say) and Owl asks whether to show its mods
-            in your list. Say yes and it becomes a source: each mod inside appears under <em>Available to add</em>, and
-            new ones show up as you extract them.
+            in your list. Say yes and it becomes a source: each mod inside is listed under it, and
+            new ones show up as you extract them. Owl remembers your sources the next time you open it, and tells you if a
+            source's folder is missing, or if a mod in it is already in your OpenMW settings.
           </li>
           <li>
             Open a mod there, choose the folders you want (or step through its installer, if it has one), then press
             <strong> Add to my mods</strong>. The <em>Author's notes</em> tab shows its readme first, and
             <em> Needs</em> lists what it requires.
           </li>
-          <li>The ✕ next to a source or individual mod stops listing it. It does not delete anything.</li>
+          <li><strong>Remove</strong> next to a source (or the ✕ in the sidebar) stops listing it. It does not delete any files or change <code>openmw.cfg</code>, and mods you already added stay on your list.</li>
         </ul>
         <p>
           <button className="secondary" onClick={onAdd}>
-            Add a mod
+            Manage my sources
           </button>
         </p>
       </section>

@@ -8,8 +8,8 @@ use std::path::{Path, PathBuf};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::cfg::ModEntry;
-use crate::library::{self, Library};
+use crate::cfg::{self, ModEntry};
+use crate::library::{self, FolderKind, LibraryEntry};
 use crate::manifest::{DecisionIssue, Manifest, SCHEMA_VERSION};
 use crate::order_fix::{self, OrderFix};
 use crate::validate::{self, CheckReport};
@@ -26,14 +26,27 @@ pub struct Profile {
     /// this is how Owl tells its own lines from theirs.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub applied: Vec<String>,
-    /// Folders that hold many mods, kept so their mods can be worked through
-    /// across sessions.
+    /// Places the player chose for Owl to look for mods, kept across sessions.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub libraries: Vec<PathBuf>,
-    /// Folders of single mods the player picked but has not added yet, so they
-    /// can be read and added later. A mod leaves this list when it is added.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub individuals: Vec<PathBuf>,
+    pub sources: Vec<Source>,
+    /// Read from profiles saved before `sources` existed, and folded into it as
+    /// the profile is read; never written.
+    #[serde(default, skip_serializing)]
+    #[schemars(skip)]
+    libraries: Vec<PathBuf>,
+    /// Same as `libraries`, for single mods.
+    #[serde(default, skip_serializing)]
+    #[schemars(skip)]
+    individuals: Vec<PathBuf>,
+}
+
+/// A place on disk the player chose for Owl to look for mods.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct Source {
+    pub path: PathBuf,
+    /// `library` for a folder that holds many mods, `mod` for the folder of one
+    /// mod that is not on the list yet (it leaves the sources once it is added).
+    pub kind: FolderKind,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -50,6 +63,7 @@ impl Default for Profile {
             schema_version: PROFILE_SCHEMA_VERSION,
             mods: Vec::new(),
             applied: Vec::new(),
+            sources: Vec::new(),
             libraries: Vec::new(),
             individuals: Vec::new(),
         }
@@ -59,6 +73,22 @@ impl Default for Profile {
 impl Profile {
     /// Appends a mod unless an entry with the same manifest path exists.
     /// Returns whether it was added.
+    /// Moves what older profiles kept in `libraries` and `individuals` into `sources`.
+    fn migrated(mut self) -> Self {
+        let old = [
+            (std::mem::take(&mut self.libraries), FolderKind::Library),
+            (std::mem::take(&mut self.individuals), FolderKind::Mod),
+        ];
+        for (paths, kind) in old {
+            for path in paths {
+                if !self.sources.iter().any(|s| s.path == path) {
+                    self.sources.push(Source { path, kind });
+                }
+            }
+        }
+        self
+    }
+
     pub fn add(&mut self, manifest: PathBuf, root: PathBuf) -> bool {
         if self.mods.iter().any(|m| m.manifest == manifest) {
             return false;
@@ -140,7 +170,7 @@ pub fn read_profile(path: &Path) -> Result<Profile, ProfileError> {
             supported: PROFILE_SCHEMA_VERSION,
         });
     }
-    Ok(p)
+    Ok(p.migrated())
 }
 
 pub fn write_profile(path: &Path, profile: &Profile) -> Result<(), ProfileError> {
@@ -257,7 +287,9 @@ pub fn add_to_store(dir: &Path, manifest: &Manifest, root: &Path) -> Result<(), 
     };
     write_manifest(&dir.join(&rel), manifest)?;
     profile.add(rel, root.to_path_buf());
-    profile.individuals.retain(|p| p != root);
+    profile
+        .sources
+        .retain(|s| !(s.kind == FolderKind::Mod && s.path == root));
     write_profile(&store_profile_path(dir), &profile)
 }
 
@@ -361,42 +393,38 @@ pub struct ProfileModView {
 pub struct ProfileView {
     pub mods: Vec<ProfileModView>,
     pub check: CheckReport,
-    /// The player's mod libraries, with what is in each.
-    pub libraries: Vec<Library>,
-    /// Single mods picked one at a time and not added yet.
-    pub individuals: Vec<IndividualMod>,
+    /// The places the player chose to look for mods, in the order they were added.
+    pub sources: Vec<SourceView>,
 }
 
-/// A single mod's folder, picked on its own rather than found in a library.
+/// One source, with what is in it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
-pub struct IndividualMod {
+pub struct SourceView {
+    pub path: String,
     /// The folder's name.
     pub name: String,
-    pub path: String,
+    pub kind: FolderKind,
+    /// False when the folder is gone (moved, renamed, or on a drive that is not connected).
     pub exists: bool,
+    /// For a library, the mods and archives in it. Empty for a single mod.
+    pub entries: Vec<LibraryEntry>,
+    /// A library had more entries than are listed.
+    pub truncated: bool,
+    /// For a single mod: the player's own `openmw.cfg` already points at it.
+    pub in_cfg: bool,
 }
 
 /// `base_cfg` is the player's own `openmw.cfg` text (without Owl's region).
 pub fn build_view(mods: &[LoadedMod], base_cfg: &str) -> ProfileView {
-    build_view_with_libraries(mods, base_cfg, &[])
+    build_view_with_sources(mods, base_cfg, &[])
 }
 
-/// [`build_view`], also reading each library folder to say what is in it.
-pub fn build_view_with_libraries(
-    mods: &[LoadedMod],
-    base_cfg: &str,
-    libraries: &[PathBuf],
-) -> ProfileView {
-    build_view_with_sources(mods, base_cfg, libraries, &[])
-}
-
-/// [`build_view_with_libraries`], also listing the single mods picked one at a
-/// time. Any that are already on the list are left out.
+/// [`build_view`], also reading each source to say what is in it. A single-mod
+/// source that is already on the list is left out.
 pub fn build_view_with_sources(
     mods: &[LoadedMod],
     base_cfg: &str,
-    libraries: &[PathBuf],
-    individuals: &[PathBuf],
+    sources: &[Source],
 ) -> ProfileView {
     let roots: Vec<PathBuf> = mods.iter().map(|m| m.root.clone()).collect();
     let entries: Vec<ModEntry> = mods
@@ -406,6 +434,7 @@ pub fn build_view_with_sources(
             root: &m.root,
         })
         .collect();
+    let cfg_data = cfg::data_entries(base_cfg);
     ProfileView {
         mods: mods
             .iter()
@@ -416,22 +445,35 @@ pub fn build_view_with_sources(
             })
             .collect(),
         check: validate::check(base_cfg, &entries),
-        libraries: libraries
+        sources: sources
             .iter()
-            .map(|l| library::read_library(l, &roots))
+            .filter(|s| s.kind == FolderKind::Library || !roots.contains(&s.path))
+            .map(|s| source_view(s, &roots, &cfg_data))
             .collect(),
-        individuals: individuals
-            .iter()
-            .filter(|p| !roots.contains(p))
-            .map(|p| IndividualMod {
-                name: p.file_name().map_or_else(
-                    || p.to_string_lossy().into_owned(),
-                    |n| n.to_string_lossy().into_owned(),
-                ),
-                path: p.to_string_lossy().into_owned(),
-                exists: p.is_dir(),
-            })
-            .collect(),
+    }
+}
+
+fn source_view(source: &Source, roots: &[PathBuf], cfg_data: &[String]) -> SourceView {
+    let path = &source.path;
+    let name = path.file_name().map_or_else(
+        || path.to_string_lossy().into_owned(),
+        |n| n.to_string_lossy().into_owned(),
+    );
+    let (exists, entries, truncated) = match source.kind {
+        FolderKind::Library => {
+            let l = library::read_library(path, roots, cfg_data);
+            (l.exists, l.entries, l.truncated)
+        }
+        FolderKind::Mod => (path.is_dir(), Vec::new(), false),
+    };
+    SourceView {
+        path: path.to_string_lossy().into_owned(),
+        name,
+        kind: source.kind,
+        exists,
+        entries,
+        truncated,
+        in_cfg: source.kind == FolderKind::Mod && library::in_cfg(path, cfg_data),
     }
 }
 
@@ -444,63 +486,39 @@ pub fn load_view(dir: &Path, base_cfg: &str) -> Result<ProfileView, ProfileError
         Vec::new()
     };
     let stored = load_store(dir)?;
-    Ok(build_view_with_sources(
-        &mods,
-        base_cfg,
-        &stored.libraries,
-        &stored.individuals,
-    ))
+    Ok(build_view_with_sources(&mods, base_cfg, &stored.sources))
 }
 
-/// Remembers a folder of mods. Does nothing if it is already remembered.
-/// Returns whether it was added.
-pub fn add_library_to_store(dir: &Path, library: &Path) -> Result<bool, ProfileError> {
+/// Remembers a place to look for mods. Does nothing if it is already a source,
+/// or (for a single mod) is already on the list. Returns whether it was added.
+pub fn add_source_to_store(
+    dir: &Path,
+    path: &Path,
+    kind: FolderKind,
+) -> Result<bool, ProfileError> {
     fs::create_dir_all(dir).map_err(|source| ProfileError::Io {
         path: dir.to_path_buf(),
         source,
     })?;
     let mut profile = load_store(dir)?;
-    if profile.libraries.iter().any(|l| l == library) {
-        return Ok(false);
-    }
-    profile.libraries.push(library.to_path_buf());
-    write_profile(&store_profile_path(dir), &profile)?;
-    Ok(true)
-}
-
-/// Forgets the library at `index`. The mods already added from it stay on the list.
-pub fn remove_library_from_store(dir: &Path, index: usize) -> Result<(), ProfileError> {
-    let mut profile = load_store(dir)?;
-    let len = profile.libraries.len();
-    if index >= len {
-        return Err(ProfileError::BadIndex { index, len });
-    }
-    profile.libraries.remove(index);
-    write_profile(&store_profile_path(dir), &profile)
-}
-
-/// Remembers a single mod's folder until it is added. Does nothing if it is
-/// already remembered or already on the list. Returns whether it was added.
-pub fn add_individual_to_store(dir: &Path, folder: &Path) -> Result<bool, ProfileError> {
-    fs::create_dir_all(dir).map_err(|source| ProfileError::Io {
-        path: dir.to_path_buf(),
-        source,
-    })?;
-    let mut profile = load_store(dir)?;
-    if profile.individuals.iter().any(|p| p == folder)
-        || profile.mods.iter().any(|m| m.root == folder)
+    if profile.sources.iter().any(|s| s.path == path)
+        || (kind == FolderKind::Mod && profile.mods.iter().any(|m| m.root == path))
     {
         return Ok(false);
     }
-    profile.individuals.push(folder.to_path_buf());
+    profile.sources.push(Source {
+        path: path.to_path_buf(),
+        kind,
+    });
     write_profile(&store_profile_path(dir), &profile)?;
     Ok(true)
 }
 
-/// Forgets a single mod's folder without adding it. The folder itself is untouched.
-pub fn remove_individual_from_store(dir: &Path, folder: &Path) -> Result<(), ProfileError> {
+/// Forgets a source. The folder itself is untouched, and mods already added
+/// from it stay on the list.
+pub fn remove_source_from_store(dir: &Path, path: &Path) -> Result<(), ProfileError> {
     let mut profile = load_store(dir)?;
-    profile.individuals.retain(|p| p != folder);
+    profile.sources.retain(|s| s.path != path);
     write_profile(&store_profile_path(dir), &profile)
 }
 
@@ -562,37 +580,42 @@ mod tests {
         ));
     }
 
+    fn paths_of(p: &Profile) -> Vec<(PathBuf, FolderKind)> {
+        p.sources.iter().map(|s| (s.path.clone(), s.kind)).collect()
+    }
+
     #[test]
-    fn libraries_are_remembered_once_and_can_be_forgotten() {
+    fn sources_are_remembered_once_and_forgotten_by_path() {
         let dir = tempfile::tempdir().unwrap();
         let lib = Path::new("/mods/library");
-        assert!(add_library_to_store(dir.path(), lib).unwrap());
+        assert!(add_source_to_store(dir.path(), lib, FolderKind::Library).unwrap());
         assert!(
-            !add_library_to_store(dir.path(), lib).unwrap(),
+            !add_source_to_store(dir.path(), lib, FolderKind::Library).unwrap(),
             "already there"
         );
-        assert!(add_library_to_store(dir.path(), Path::new("/more")).unwrap());
+        assert!(add_source_to_store(dir.path(), Path::new("/more"), FolderKind::Library).unwrap());
         assert_eq!(
-            load_store(dir.path()).unwrap().libraries,
-            vec![PathBuf::from("/mods/library"), PathBuf::from("/more")]
+            paths_of(&load_store(dir.path()).unwrap()),
+            vec![
+                (PathBuf::from("/mods/library"), FolderKind::Library),
+                (PathBuf::from("/more"), FolderKind::Library)
+            ]
         );
 
-        remove_library_from_store(dir.path(), 0).unwrap();
+        remove_source_from_store(dir.path(), lib).unwrap();
         assert_eq!(
-            load_store(dir.path()).unwrap().libraries,
-            vec![PathBuf::from("/more")]
+            paths_of(&load_store(dir.path()).unwrap()),
+            vec![(PathBuf::from("/more"), FolderKind::Library)]
         );
-        assert!(matches!(
-            remove_library_from_store(dir.path(), 3),
-            Err(ProfileError::BadIndex { index: 3, len: 1 })
-        ));
+        // Forgetting something that is not there is not an error.
+        remove_source_from_store(dir.path(), Path::new("/never/added")).unwrap();
     }
 
     #[test]
     fn libraries_survive_adding_a_mod_and_apply_records() {
         let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures");
         let dir = tempfile::tempdir().unwrap();
-        add_library_to_store(dir.path(), &fixtures.join("library")).unwrap();
+        add_source_to_store(dir.path(), &fixtures.join("library"), FolderKind::Library).unwrap();
         let root = fixtures.join("library").join("Alpha Mod");
         let report = crate::scan::scan(&root, &crate::scan::ScanOptions::default()).unwrap();
         add_to_store(dir.path(), &Manifest::from_scan("Alpha", &report), &root).unwrap();
@@ -603,12 +626,12 @@ mod tests {
         .unwrap();
 
         let p = load_store(dir.path()).unwrap();
-        assert_eq!(p.libraries.len(), 1);
+        assert_eq!(p.sources.len(), 1);
         assert_eq!(p.applied, vec!["content=Simple.esp"]);
 
         // The view says which entries of the library are already on the list.
         let view = load_view(dir.path(), "").unwrap();
-        let added: Vec<(&str, bool)> = view.libraries[0]
+        let added: Vec<(&str, bool)> = view.sources[0]
             .entries
             .iter()
             .map(|e| (e.name.as_str(), e.added))
@@ -618,47 +641,127 @@ mod tests {
     }
 
     #[test]
-    fn individual_mods_wait_until_added_and_can_be_forgotten() {
+    fn single_mod_sources_wait_until_added_and_can_be_forgotten() {
         let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures");
         let dir = tempfile::tempdir().unwrap();
         let root = fixtures.join("simple");
-        assert!(add_individual_to_store(dir.path(), &root).unwrap());
+        assert!(add_source_to_store(dir.path(), &root, FolderKind::Mod).unwrap());
         assert!(
-            !add_individual_to_store(dir.path(), &root).unwrap(),
+            !add_source_to_store(dir.path(), &root, FolderKind::Mod).unwrap(),
             "already there"
         );
-        assert!(add_individual_to_store(dir.path(), Path::new("/gone/Other")).unwrap());
+        assert!(
+            add_source_to_store(dir.path(), Path::new("/gone/Other"), FolderKind::Mod).unwrap()
+        );
 
         let view = load_view(dir.path(), "").unwrap();
-        let listed: Vec<(&str, bool)> = view
-            .individuals
+        let listed: Vec<(&str, FolderKind, bool)> = view
+            .sources
             .iter()
-            .map(|i| (i.name.as_str(), i.exists))
+            .map(|s| (s.name.as_str(), s.kind, s.exists))
             .collect();
-        assert_eq!(listed, [("simple", true), ("Other", false)]);
+        assert_eq!(
+            listed,
+            [
+                ("simple", FolderKind::Mod, true),
+                ("Other", FolderKind::Mod, false)
+            ]
+        );
 
-        // Adding the mod takes it off the waiting list.
+        // Adding the mod takes it off the list of sources.
         let report = crate::scan::scan(&root, &crate::scan::ScanOptions::default()).unwrap();
         add_to_store(dir.path(), &Manifest::from_scan("Simple", &report), &root).unwrap();
         assert!(
-            !add_individual_to_store(dir.path(), &root).unwrap(),
+            !add_source_to_store(dir.path(), &root, FolderKind::Mod).unwrap(),
             "already on the list"
         );
         let view = load_view(dir.path(), "").unwrap();
-        assert_eq!(view.individuals.len(), 1);
+        assert_eq!(view.sources.len(), 1);
 
-        remove_individual_from_store(dir.path(), Path::new("/gone/Other")).unwrap();
-        assert!(load_view(dir.path(), "").unwrap().individuals.is_empty());
+        remove_source_from_store(dir.path(), Path::new("/gone/Other")).unwrap();
+        assert!(load_view(dir.path(), "").unwrap().sources.is_empty());
     }
 
     #[test]
-    fn profiles_written_before_libraries_still_load() {
+    fn profiles_saved_with_libraries_and_individuals_become_sources_and_stay_that_way() {
+        let dir = tempfile::tempdir().unwrap();
+        let old = serde_json::json!({
+            "schema_version": 1,
+            "mods": [],
+            "applied": ["content=A.esp"],
+            "libraries": ["/mods/one", "/mods/two"],
+            "individuals": ["/mods/single"],
+        });
+        std::fs::write(store_profile_path(dir.path()), old.to_string()).unwrap();
+
+        let p = load_store(dir.path()).unwrap();
+        assert_eq!(
+            paths_of(&p),
+            vec![
+                (PathBuf::from("/mods/one"), FolderKind::Library),
+                (PathBuf::from("/mods/two"), FolderKind::Library),
+                (PathBuf::from("/mods/single"), FolderKind::Mod),
+            ]
+        );
+
+        // Any later write (here, recording what was applied) keeps them, in the new form only.
+        set_applied(&store_profile_path(dir.path()), &["content=B.esp".into()]).unwrap();
+        let text = std::fs::read_to_string(store_profile_path(dir.path())).unwrap();
+        assert!(text.contains("\"sources\""));
+        assert!(!text.contains("libraries") && !text.contains("individuals"));
+        assert_eq!(paths_of(&load_store(dir.path()).unwrap()).len(), 3);
+    }
+
+    #[test]
+    fn profiles_written_before_sources_still_load() {
         let mut v = serde_json::to_value(Profile::default()).unwrap();
-        v.as_object_mut().unwrap().remove("libraries");
+        v.as_object_mut().unwrap().remove("sources");
         assert_eq!(
             serde_json::from_value::<Profile>(v).unwrap(),
             Profile::default()
         );
+    }
+
+    #[test]
+    fn a_source_says_which_of_its_mods_the_players_own_cfg_already_points_at() {
+        let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures");
+        let dir = tempfile::tempdir().unwrap();
+        add_source_to_store(dir.path(), &fixtures.join("library"), FolderKind::Library).unwrap();
+        add_source_to_store(dir.path(), &fixtures.join("simple"), FolderKind::Mod).unwrap();
+        // A trailing slash, and a folder inside the mod rather than the mod's own.
+        let cfg = format!(
+            "data=\"{}/\"\ndata=\"{}\"\n",
+            fixtures.join("library").join("Alpha Mod").display(),
+            fixtures
+                .join("library")
+                .join("Beta Installer")
+                .join("Option A")
+                .display(),
+        );
+        let view = load_view(dir.path(), &cfg).unwrap();
+        let library = &view.sources[0];
+        let flags: Vec<(&str, bool)> = library
+            .entries
+            .iter()
+            .map(|e| (e.name.as_str(), e.in_cfg))
+            .collect();
+        assert_eq!(
+            flags,
+            [
+                ("Alpha Mod", true),
+                ("Beta Installer", true),
+                ("Docs", false),
+                ("Packed.7z", false)
+            ]
+        );
+        assert!(!view.sources[1].in_cfg, "the single mod is not in the cfg");
+
+        let view = load_view(
+            dir.path(),
+            &format!("data=\"{}\"\n", fixtures.join("simple").display()),
+        )
+        .unwrap();
+        assert!(view.sources[1].in_cfg);
     }
 
     #[test]

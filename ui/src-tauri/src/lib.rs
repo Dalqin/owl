@@ -84,36 +84,22 @@ async fn classify_folder(path: String) -> CmdResult<FolderKind> {
         .map_err(|e| e.to_string())
 }
 
-/// Remembers a folder of mods so its mods can be worked through.
+/// Remembers a place to look for mods: a folder of many mods (`library`) or
+/// the folder of one mod that is not on the list yet (`mod`).
 #[tauri::command]
-fn add_library(path: String) -> CmdResult<bool> {
+fn add_source(path: String, kind: FolderKind) -> CmdResult<bool> {
     let path = PathBuf::from(path);
     if !path.is_dir() {
         return Err(format!("{} is not a folder", path.display()));
     }
-    profile::add_library_to_store(&store_dir()?, &path).map_err(|e| e.to_string())
+    profile::add_source_to_store(&store_dir()?, &path, kind).map_err(|e| e.to_string())
 }
 
-/// Forgets a library. Mods already added from it stay on the list.
+/// Forgets a source. Mods already added from it stay on the list, and the
+/// folder is untouched.
 #[tauri::command]
-fn remove_library(index: usize) -> CmdResult<()> {
-    profile::remove_library_from_store(&store_dir()?, index).map_err(|e| e.to_string())
-}
-
-/// Remembers a single mod's folder until it is added.
-#[tauri::command]
-fn add_individual(path: String) -> CmdResult<bool> {
-    let path = PathBuf::from(path);
-    if !path.is_dir() {
-        return Err(format!("{} is not a folder", path.display()));
-    }
-    profile::add_individual_to_store(&store_dir()?, &path).map_err(|e| e.to_string())
-}
-
-/// Forgets a single mod's folder without adding it.
-#[tauri::command]
-fn remove_individual(path: String) -> CmdResult<()> {
-    profile::remove_individual_from_store(&store_dir()?, &PathBuf::from(path))
+fn remove_source(path: String) -> CmdResult<()> {
+    profile::remove_source_from_store(&store_dir()?, &PathBuf::from(path))
         .map_err(|e| e.to_string())
 }
 
@@ -264,10 +250,8 @@ pub fn run() {
             add_to_profile,
             rescan_mod,
             classify_folder,
-            add_library,
-            remove_library,
-            add_individual,
-            remove_individual,
+            add_source,
+            remove_source,
             read_mod_image,
             move_in_profile,
             remove_from_profile,

@@ -52,6 +52,9 @@ pub struct LibraryEntry {
     pub kind: EntryKind,
     /// A mod from this folder is already on the player's list.
     pub added: bool,
+    /// The player's own `openmw.cfg` (not what Owl wrote) already has a `data=`
+    /// line for this folder or one inside it, so the mod is set up some other way.
+    pub in_cfg: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -142,6 +145,32 @@ pub fn classify(root: &Path) -> FolderKind {
     }
 }
 
+/// A folder as `openmw.cfg` compares it: forward slashes, no trailing slash,
+/// and on Windows no difference in letter case.
+fn cfg_form(folder: &str) -> String {
+    let text = if cfg!(windows) {
+        folder.replace('\\', "/").to_lowercase()
+    } else {
+        folder.to_string()
+    };
+    match text.trim_end_matches('/') {
+        "" => text,
+        trimmed => trimmed.to_string(),
+    }
+}
+
+/// Whether one of the `data=` folders (see `cfg::data_entries`) is `folder` or
+/// a folder inside it.
+pub fn in_cfg(folder: &Path, cfg_data: &[String]) -> bool {
+    let folder = cfg_form(&folder.to_string_lossy());
+    cfg_data.iter().any(|d| {
+        let d = cfg_form(d);
+        d == folder
+            || d.strip_prefix(&folder)
+                .is_some_and(|rest| rest.starts_with('/'))
+    })
+}
+
 fn same_folder(a: &Path, b: &Path) -> bool {
     a == b
         || match (fs::canonicalize(a), fs::canonicalize(b)) {
@@ -152,7 +181,8 @@ fn same_folder(a: &Path, b: &Path) -> bool {
 
 /// What is in the library at `path`. `added_roots` are the folders of the mods
 /// already on the player's list, so each entry can say whether it is one.
-pub fn read_library(path: &Path, added_roots: &[PathBuf]) -> Library {
+/// `cfg_data` are the `data=` folders of the player's own `openmw.cfg`.
+pub fn read_library(path: &Path, added_roots: &[PathBuf], cfg_data: &[String]) -> Library {
     let shown = path.to_string_lossy().into_owned();
     let Ok(read) = fs::read_dir(path) else {
         return Library {
@@ -185,6 +215,7 @@ pub fn read_library(path: &Path, added_roots: &[PathBuf]) -> Library {
             };
             Some(LibraryEntry {
                 added: kind == EntryKind::Mod && added_roots.iter().any(|r| same_folder(r, &full)),
+                in_cfg: kind == EntryKind::Mod && in_cfg(&full, cfg_data),
                 path: full.to_string_lossy().into_owned(),
                 name,
                 kind,
@@ -213,7 +244,7 @@ mod tests {
     }
 
     fn lib(added: &[PathBuf]) -> Library {
-        read_library(&fixture("library"), added)
+        read_library(&fixture("library"), added, &[])
     }
 
     #[test]
@@ -296,8 +327,51 @@ mod tests {
     }
 
     #[test]
+    fn a_cfg_folder_is_the_mod_or_inside_it_and_nothing_that_merely_starts_alike() {
+        let data = |lines: &[&str]| lines.iter().map(|l| l.to_string()).collect::<Vec<_>>();
+        let a = Path::new("/mods/a");
+        assert!(in_cfg(a, &data(&["/mods/a"])));
+        assert!(in_cfg(a, &data(&["/mods/a/"])), "trailing slash");
+        assert!(in_cfg(a, &data(&["/mods/a/00 Core"])), "a folder inside it");
+        assert!(
+            !in_cfg(a, &data(&["/mods/ab/00 Core"])),
+            "a different folder"
+        );
+        assert!(!in_cfg(a, &data(&["/mods"])), "a folder around it");
+        assert!(!in_cfg(a, &[]));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn on_windows_slash_style_and_letter_case_do_not_matter() {
+        let data = vec!["C:/Mods/A/00 Core".to_string()];
+        assert!(in_cfg(Path::new(r"c:\mods\a"), &data));
+    }
+
+    #[test]
+    fn entries_say_when_the_players_cfg_already_points_at_them() {
+        let beta = fixture("library").join("Beta Installer");
+        let cfg = vec![format!("{}/Option A", beta.display())];
+        let l = read_library(&fixture("library"), &[], &cfg);
+        let flags: Vec<(&str, bool)> = l
+            .entries
+            .iter()
+            .map(|e| (e.name.as_str(), e.in_cfg))
+            .collect();
+        assert_eq!(
+            flags,
+            vec![
+                ("Alpha Mod", false),
+                ("Beta Installer", true),
+                ("Docs", false),
+                ("Packed.7z", false)
+            ]
+        );
+    }
+
+    #[test]
     fn a_missing_library_says_so() {
-        let l = read_library(Path::new("/no/such/place"), &[]);
+        let l = read_library(Path::new("/no/such/place"), &[], &[]);
         assert!(!l.exists && l.entries.is_empty());
     }
 
@@ -307,7 +381,7 @@ mod tests {
         let m = dir.path().join("Installer Only");
         fs::create_dir_all(m.join("FOMOD")).unwrap();
         fs::write(m.join("FOMOD").join("moduleconfig.XML"), "<config/>").unwrap();
-        let l = read_library(dir.path(), &[]);
+        let l = read_library(dir.path(), &[], &[]);
         assert_eq!(l.entries[0].kind, EntryKind::Mod);
     }
 
@@ -317,7 +391,7 @@ mod tests {
         for i in 0..MAX_ENTRIES + 5 {
             fs::write(dir.path().join(format!("m{i:04}.zip")), b"x").unwrap();
         }
-        let l = read_library(dir.path(), &[]);
+        let l = read_library(dir.path(), &[], &[]);
         assert!(l.truncated);
         assert_eq!(l.entries.len(), MAX_ENTRIES);
     }
@@ -329,7 +403,7 @@ mod tests {
         let outside = tempfile::tempdir().unwrap();
         fs::create_dir(outside.path().join("Meshes")).unwrap();
         std::os::unix::fs::symlink(outside.path(), dir.path().join("Linked")).unwrap();
-        assert!(read_library(dir.path(), &[]).entries.is_empty());
+        assert!(read_library(dir.path(), &[], &[]).entries.is_empty());
         assert_eq!(classify(dir.path()), FolderKind::Mod);
     }
 }

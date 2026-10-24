@@ -11,16 +11,12 @@ export const scanFolder = (path) => invoke("scan_folder", { path });
 // Whether a folder is one mod ("mod") or a folder of many ("library").
 export const classifyFolder = (path) => invoke("classify_folder", { path });
 
-// Remember a folder of mods, so they can be worked through. Resolves to whether it was new.
-export const addLibrary = (path) => invoke("add_library", { path });
+// Remember a place to look for mods: kind is "library" (a folder of many mods) or
+// "mod" (one mod's folder, kept until it is added). Resolves to whether it was new.
+export const addSource = (path, kind) => invoke("add_source", { path, kind });
 
-export const removeLibrary = (index) => invoke("remove_library", { index });
-
-// Remember a single mod's folder until it is added. Resolves to whether it was new.
-export const addIndividual = (path) => invoke("add_individual", { path });
-
-// Forget a single mod's folder without adding it.
-export const removeIndividual = (path) => invoke("remove_individual", { path });
+// Stop listing a source. Nothing on disk changes, and mods already added stay.
+export const removeSource = (path) => invoke("remove_source", { path });
 
 // What setting up this mod would do and what it needs, for the current answers.
 //   report        the result of scanFolder

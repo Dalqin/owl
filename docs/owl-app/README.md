@@ -2,7 +2,7 @@
 
 The graphical front end. It shows what Owl finds in a mod folder, asks the mod's own installer questions in plain language, and says what the mod needs.
 
-> Status: two sections. **Add a mod** (choose a folder, see what was found, answer the installer, add it) and **My mods** (your list in load order, problems, the plugin load order). The app can write your mods into OpenMW's settings (`openmw.cfg`), after you review exactly what will change.
+> Status: two parts. **Manage my sources** (choose the folders Owl looks in, then open a mod to see what was found, answer the installer, add it) and **My mods** (your list in load order, problems, the plugin load order). The app can write your mods into OpenMW's settings (`openmw.cfg`), after you review exactly what will change.
 
 ## Running it (development)
 
@@ -32,18 +32,28 @@ Tauri targets the operating systems Morrowind runs on: Windows, Linux, macOS. Pa
 
 ## What you see
 
-Two sections, switched at the top: **Add a mod** and **My mods**.
+The sidebar has **Manage my sources** at the top, the mods you can add from your sources below it, then **My mods** (your list in load order).
 
-### Add a mod
+### Adding a mod
 
 1. **Your OpenMW settings:** the `openmw.cfg` Owl found, or a plain message that it could not find one. Search order is in [owl-cli](../owl-cli/README.md#finding-openmwcfg).
-2. **Choose a mod folder:** opens your system's own folder chooser: the native dialog on Windows and macOS, and on Linux your desktop's dialog through the XDG Desktop Portal. If the chooser cannot open, you are told why and can try again.
+2. **Choose a folder:** press **Add a source** in **Manage my sources**. It opens your system's own folder chooser: the native dialog on Windows and macOS, and on Linux your desktop's dialog through the XDG Desktop Portal. If the chooser cannot open, you are told why and can try again.
 3. **What was found:** how many places could be the mod, how many plugins, and any warnings in plain words.
 4. **Installer questions:** if the mod ships a FOMOD installer, its steps, questions and options. Options the author recommends are marked. Each option shows the first line of the author's description; if there is more, **Read more** shows all of it exactly as the author wrote it, and **Show less** folds it away again. Reading more never selects the option. Steps that only apply after an earlier answer appear and disappear as you answer.
 5. **Which folder is the mod?** If there are several candidate folders and no installer, you pick one.
 6. **What will be set up:** the folders and plugins your answers lead to, plus notes about anything Owl could not work out.
 7. **This mod needs these things:** each plugin the mod depends on, with a status in words: *ready*, *missing* or *can't tell*. "Can't tell" appears when Owl cannot read your `openmw.cfg`.
 8. **Add to my mods:** puts the mod on your list (disabled until a folder is decided). Adding a mod from a folder that is already on your list updates it in place.
+
+### Sources
+
+**Manage my sources** (the first item in the sidebar) explains what a source is, lists yours with where each is and what is in it, and lets you add or remove them. A source is a place you chose for Owl to look for mods: a folder that holds many mods (your downloads folder, say), or the folder of one mod you have not added yet. Sources are saved with your list, so they are still there the next time you open Owl. They appear in the sidebar under **Sources**, in the order you added them.
+
+- Adding a source lists it and shows a short note; it does not jump to the source. Use **Open** on its row when you want to look inside.
+- A folder of mods shows how many of its mods are not on your list yet; open it to see every mod, archive and folder in it, and which ones are on your list.
+- A mod that your own `openmw.cfg` already points at (set up by hand, by the Launcher or by another tool) is marked *Already in your OpenMW settings, not added by Owl*. Owl does not change that line.
+- A source whose folder is gone (moved, renamed, a drive that is not connected) is marked *missing*.
+- **Remove** (or the ✕ in the sidebar) stops listing a source. It deletes no files, does not change your `openmw.cfg`, and mods you already added from it stay on your list.
 
 ### My mods
 

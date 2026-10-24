@@ -53,11 +53,11 @@ describe("AllModules (rendering real core output)", () => {
     expect(within(row).getByText(/needs Tribunal\.esm, which is not loaded/)).toBeInTheDocument();
   });
 
-  it("invites adding a mod when the list is empty", () => {
+  it("invites managing sources when the list is empty", () => {
     const onAdd = vi.fn();
     show({ mods: [], check: { issues: [], mods: [], load_order: [] } }, { onAdd });
     expect(screen.getByText("You have not added any mods yet.")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("Add a mod"));
+    fireEvent.click(screen.getByText("Manage my sources"));
     expect(onAdd).toHaveBeenCalled();
   });
 

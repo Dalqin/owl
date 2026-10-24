@@ -37,14 +37,6 @@ export const HelpIcon = () => (
   </svg>
 );
 
-// A group of mods picked one at a time, not from a folder.
-export const PickedIcon = () => (
-  <svg {...base}>
-    <path d="M8 1.8v6.4M5.4 5.8 8 8.4l2.6-2.6" />
-    <path d="M2.2 9.2h3l.8 1.8h4l.8-1.8h3v3.6a1 1 0 0 1-1 1H3.2a1 1 0 0 1-1-1z" />
-  </svg>
-);
-
 // The app's logo: an owl's face, ear tufts, two round eyes and a beak.
 export const OwlLogo = ({ size = 28 }) => (
   <svg {...base} width={size} height={size} viewBox="0 0 32 32" strokeWidth={2} className="logo">

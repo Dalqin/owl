@@ -11,8 +11,7 @@ const show = (view, selection, onSelect = () => {}, extra = {}) =>
     <Sidebar
       mods={view.mods}
       check={view.check}
-      libraries={view.libraries}
-      individuals={view.individuals}
+      sources={view.sources}
       selection={selection}
       onSelect={onSelect}
       {...extra}
@@ -23,7 +22,7 @@ describe("Sidebar", () => {
   it("pins adding a mod above the mods, and all modules below them", () => {
     show(healthy, { kind: "list" });
     const buttons = screen.getAllByRole("button").map((b) => b.textContent);
-    expect(buttons).toEqual(["+ Add a mod", "1.Simple", "2.Variant", "Review and finalize", "Help"]);
+    expect(buttons).toEqual(["Manage my sources", "1.Simple", "2.Variant", "Review and finalize", "Help"]);
   });
 
   it("marks only the selected entry as current", () => {
@@ -36,12 +35,12 @@ describe("Sidebar", () => {
     const onSelect = vi.fn();
     show(healthy, { kind: "list" }, onSelect);
     fireEvent.click(screen.getByRole("button", { name: /Simple/ }));
-    fireEvent.click(screen.getByRole("button", { name: "+ Add a mod" }));
+    fireEvent.click(screen.getByRole("button", { name: "Manage my sources" }));
     fireEvent.click(screen.getByRole("button", { name: "Review and finalize" }));
     fireEvent.click(screen.getByRole("button", { name: "Help" }));
     expect(onSelect.mock.calls.map((c) => c[0])).toEqual([
       { kind: "mod", index: 0 },
-      { kind: "add", pick: expect.any(Number) }, // asks for the folder chooser
+      { kind: "sources" },
       { kind: "list" },
       { kind: "help" },
     ]);
@@ -59,19 +58,19 @@ describe("Sidebar", () => {
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
 
-  it("lists the libraries above the mods, and the review last, with only what can still be added", () => {
+  it("lists the sources above the mods, and the review last, with only what can still be added", () => {
     show(libraryView, { kind: "list" });
     const buttons = screen.getAllByRole("button").map((b) => b.textContent);
     expect(buttons).toEqual([
-      "+ Add a mod",
-      "simple", // individual mods come first
-      "✕",
-      "no-such-modmissing",
-      "✕",
-      "library1",
+      "Manage my sources",
+      "library1", // sources keep the order they were added in
       "✕",
       "Beta Installer",
       "no-such-librarymissing",
+      "✕",
+      "simple",
+      "✕",
+      "no-such-modmissing",
       "✕",
       "1.Alpha Mod",
       "Review and finalize",
@@ -79,38 +78,33 @@ describe("Sidebar", () => {
     ]);
   });
 
-  it("groups single mods under a heading that says they are not from a folder", () => {
-    show(libraryView, { kind: "list" });
-    expect(screen.getByText("Individual mods")).toBeInTheDocument();
-    expect(screen.getByText("Not part of a folder")).toBeInTheDocument();
-  });
-
-  it("has no individual group when there are none", () => {
+  it("says what the sources are for, and shows none when there are none", () => {
+    const { unmount } = show(libraryView, { kind: "list" });
+    expect(screen.getByText(/Mods you can add/)).toBeInTheDocument();
+    unmount();
     show(healthy, { kind: "list" });
-    expect(screen.queryByText("Individual mods")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Mods you can add/)).not.toBeInTheDocument();
   });
 
-  it("marks the open individual mod, and forgets one or a folder on request", () => {
-    const onForgetIndividual = vi.fn();
-    const onForgetLibrary = vi.fn();
-    show(libraryView, { kind: "candidate", path: "/fixtures/simple" }, () => {}, { onForgetIndividual, onForgetLibrary });
+  it("marks the open single mod, and stops listing a folder or a single mod on request", () => {
+    const onForgetSource = vi.fn();
+    show(libraryView, { kind: "candidate", path: "/fixtures/simple" }, () => {}, { onForgetSource });
     const current = screen.getAllByRole("button").filter((b) => b.getAttribute("aria-current") === "page");
     expect(current.map((b) => b.textContent)).toEqual(["simple"]);
-    fireEvent.click(screen.getByRole("button", { name: "Forget simple" }));
+    fireEvent.click(screen.getByRole("button", { name: "Stop listing simple" }));
     fireEvent.click(screen.getByRole("button", { name: "Stop listing library" }));
-    expect(onForgetIndividual).toHaveBeenCalledWith("/fixtures/simple");
-    expect(onForgetLibrary).toHaveBeenCalledWith("/fixtures/library");
+    expect(onForgetSource.mock.calls.map((c) => c[0])).toEqual(["/fixtures/simple", "/fixtures/library"]);
   });
 
   it("marks the open library or candidate, and reports what the player picks in them", () => {
     const onSelect = vi.fn();
     const { rerender } = render(
-      <Sidebar mods={libraryView.mods} check={libraryView.check} libraries={libraryView.libraries} selection={{ kind: "candidate", path: "/fixtures/library/Beta Installer" }} onSelect={onSelect} />,
+      <Sidebar mods={libraryView.mods} check={libraryView.check} sources={libraryView.sources} selection={{ kind: "candidate", path: "/fixtures/library/Beta Installer" }} onSelect={onSelect} />,
     );
     const current = () => screen.getAllByRole("button").filter((b) => b.getAttribute("aria-current") === "page").map((b) => b.textContent);
     expect(current()).toEqual(["Beta Installer"]);
     rerender(
-      <Sidebar mods={libraryView.mods} check={libraryView.check} libraries={libraryView.libraries} selection={{ kind: "library", path: "/fixtures/library" }} onSelect={onSelect} />,
+      <Sidebar mods={libraryView.mods} check={libraryView.check} sources={libraryView.sources} selection={{ kind: "library", path: "/fixtures/library" }} onSelect={onSelect} />,
     );
     expect(current()).toEqual(["library1"]);
     fireEvent.click(screen.getByRole("button", { name: "Beta Installer" }));
@@ -121,8 +115,4 @@ describe("Sidebar", () => {
     ]);
   });
 
-  it("shows no library section when there are none", () => {
-    show(healthy, { kind: "list" });
-    expect(screen.queryByText("Available to add")).not.toBeInTheDocument();
-  });
 });

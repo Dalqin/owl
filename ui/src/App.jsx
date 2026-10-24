@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 
 import * as api from "./api.js";
-import AddMod from "./AddMod.jsx";
 import ScannedMod from "./ScannedMod.jsx";
 import Help from "./components/Help.jsx";
 import LibraryPane from "./components/LibraryPane.jsx";
 import ModDetail from "./components/ModDetail.jsx";
 import Sidebar from "./components/Sidebar.jsx";
+import SourcesPane from "./components/SourcesPane.jsx";
 import AllModules from "./components/AllModules.jsx";
 import { unknown } from "./unknown.js";
 import { OwlLogo } from "./components/icons.jsx";
@@ -57,12 +57,11 @@ export default function App() {
 
   // With nothing chosen yet: the list if there are mods, otherwise adding one.
   const mods = view?.mods ?? [];
-  const chosen = selection ?? { kind: mods.length > 0 ? "list" : "add" };
-  const libraries = view?.libraries ?? [];
-  const individuals = view?.individuals ?? [];
+  const chosen = selection ?? { kind: mods.length > 0 ? "list" : "sources" };
+  const sources = view?.sources ?? [];
   const gone =
     (chosen.kind === "mod" && chosen.index >= mods.length) ||
-    (chosen.kind === "library" && !libraries.some((l) => l.path === chosen.path));
+    (chosen.kind === "library" && !sources.some((s) => s.kind === "library" && s.path === chosen.path));
   const shown = gone ? { kind: "list" } : chosen;
 
   // A message belongs to the screen it came from, so choosing something else clears it.
@@ -77,45 +76,47 @@ export default function App() {
     setSelection(at >= 0 ? { kind: "mod", index: at } : { kind: "list" });
   }
 
-  async function libraryAdded(path) {
+  // A new source is listed and the player stays where they are, with a note of what happened.
+  async function sourceAdded(path, wasNew) {
     await reload();
-    select({ kind: "library", path });
+    const name = path.split(/[\\/]/).filter(Boolean).pop() ?? path;
+    setToast({ text: wasNew ? `Added “${name}” as a source` : `“${name}” is already a source`, id: Date.now() });
   }
 
+  // Stops listing a source (nothing on disk or in openmw.cfg changes). If that
+  // source is open, the player lands back on the list of sources.
   async function forget(path) {
-    const index = libraries.findIndex((l) => l.path === path);
-    await api.removeLibrary(index);
+    const source = sources.find((s) => s.path === path);
+    await api.removeSource(path);
     await reload();
-    select({ kind: "add" });
-  }
-
-  // A single mod joins "Individual mods" and opens, so the sidebar shows where it is.
-  async function individualAdded(path) {
-    await reload();
-    select({ kind: "candidate", path });
-  }
-
-  async function forgetIndividual(path) {
-    await api.removeIndividual(path);
-    await reload();
-    if (chosen.kind === "candidate" && chosen.path === path) select({ kind: "add" });
+    const open = (chosen.kind === "candidate" || chosen.kind === "library") && chosen.path === path;
+    if (source && open) select({ kind: "sources" });
   }
 
 
   function pane() {
     switch (shown.kind) {
-      case "add":
-        return <AddMod pick={shown.pick} onIndividualAdded={individualAdded} onLibraryAdded={libraryAdded} />;
+      case "sources":
+        return (
+          <SourcesPane
+            sources={sources}
+            pick={shown.pick}
+            onPick={() => select({ kind: "sources", pick: Date.now() })}
+            onOpen={select}
+            onForget={forget}
+            onSourceAdded={sourceAdded}
+          />
+        );
       case "candidate":
         return <ScannedMod key={shown.path} folder={shown.path} cfg={cfg} onAdded={added} />;
       case "library": {
-        const library = libraries.find((l) => l.path === shown.path);
+        const library = sources.find((s) => s.kind === "library" && s.path === shown.path);
         return (
           <LibraryPane library={library} onOpen={(path) => select({ kind: "candidate", path })} />
         );
       }
       case "help":
-        return <Help onAdd={() => select({ kind: "add", pick: Date.now() })} />;
+        return <Help onAdd={() => select({ kind: "sources" })} />;
       case "list":
         return (
           <AllModules
@@ -123,7 +124,7 @@ export default function App() {
             cfgPath={cfg.path}
             profileFile={profileFile}
             onReload={reload}
-            onAdd={() => select({ kind: "add", pick: Date.now() })}
+            onAdd={() => select({ kind: "sources" })}
           />
         );
       case "mod":
@@ -161,12 +162,10 @@ export default function App() {
           <Sidebar
             mods={mods}
             check={view.check}
-            libraries={libraries}
-            individuals={individuals}
+            sources={sources}
             selection={shown}
             onSelect={select}
-            onForgetLibrary={forget}
-            onForgetIndividual={forgetIndividual}
+            onForgetSource={forget}
           />
           <div className="pane">
             {loadError && <p className="note error" role="alert">{loadError}</p>}

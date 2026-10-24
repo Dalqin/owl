@@ -1,20 +1,11 @@
-import { FolderIcon, HelpIcon, ModIcon, PickedIcon } from "./icons.jsx";
+import { FolderIcon, HelpIcon, ModIcon } from "./icons.jsx";
 
-// The master list, top to bottom as the work goes: adding a mod, the mods available
-// (picked one at a time, then folders of mods), the mods on the list in load order,
-// and the review.
-// `selection` is { kind: "add" } | { kind: "mod", index } | { kind: "list" }
+// The master list, top to bottom as the work goes: managing sources, the sources (folders
+// of mods, and single mods not added yet) with what can still be added from them, the
+// mods on the list in load order, and the review.
+// `selection` is { kind: "sources" } | { kind: "mod", index } | { kind: "list" }
 //   | { kind: "library", path } | { kind: "candidate", path } | { kind: "help" }.
-export default function Sidebar({
-  mods,
-  check,
-  libraries = [],
-  individuals = [],
-  selection,
-  onSelect,
-  onForgetLibrary = () => {},
-  onForgetIndividual = () => {},
-}) {
+export default function Sidebar({ mods, check, sources = [], selection, onSelect, onForgetSource = () => {} }) {
   const current = (kind, key) => {
     if (selection.kind !== kind) return undefined;
     switch (kind) {
@@ -27,66 +18,60 @@ export default function Sidebar({
         return "page";
     }
   };
-  const baseName = (path) => path.split(/[\\/]/).filter(Boolean).pop() ?? path;
 
   return (
     <nav aria-label="Your mods" className="sidebar">
-      <button className="side-item side-add" aria-current={current("add")} onClick={() => onSelect({ kind: "add", pick: Date.now() })}>
-        + Add a mod
+      <button className="side-item side-add" aria-current={current("sources")} onClick={() => onSelect({ kind: "sources" })}>
+        Manage my sources
       </button>
 
-      {(individuals.length > 0 || libraries.length > 0) && (
+      {sources.length > 0 && (
         <div className="side-sources">
-          <p className="muted side-hint">Available to add</p>
+          <p className="muted side-hint">Mods you can add, from your sources</p>
 
-          {individuals.length > 0 && (
-            <div className="side-source">
-              <div className="side-group">
-                <PickedIcon />
-                <span className="side-name">
-                  Individual mods
-                  <span className="side-sub">Not part of a folder</span>
-                </span>
-                <span className="side-count">{individuals.length}</span>
-              </div>
-              <ul className="side-candidates">
-                {individuals.map((m) => (
-                  <li key={m.path} className="side-row">
+          {sources.map((source) => {
+            const forget = (
+              <button
+                className="side-forget"
+                aria-label={`Stop listing ${source.name}`}
+                title="Stop listing this source. Nothing is deleted."
+                onClick={() => onForgetSource(source.path)}
+              >
+                ✕
+              </button>
+            );
+            if (source.kind === "mod") {
+              return (
+                <div key={source.path} className="side-source">
+                  <div className="side-row">
                     <button
                       className="side-item"
-                      aria-current={current("candidate", m.path)}
-                      onClick={() => onSelect({ kind: "candidate", path: m.path })}
+                      aria-current={current("candidate", source.path)}
+                      onClick={() => onSelect({ kind: "candidate", path: source.path })}
                     >
                       <ModIcon />
-                      <span className="side-name">{m.name}</span>
-                      {!m.exists && <span className="side-count">missing</span>}
+                      <span className="side-name">{source.name}</span>
+                      {!source.exists && <span className="side-count">missing</span>}
                     </button>
-                    <button className="side-forget" aria-label={`Forget ${m.name}`} title="Forget this mod without adding it" onClick={() => onForgetIndividual(m.path)}>
-                      ✕
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {libraries.map((lib) => {
-            const left = lib.entries.filter((e) => e.kind === "mod" && !e.added);
+                    {forget}
+                  </div>
+                </div>
+              );
+            }
+            const left = source.entries.filter((e) => e.kind === "mod" && !e.added);
             return (
-              <div key={lib.path} className="side-source">
+              <div key={source.path} className="side-source">
                 <div className="side-row">
                   <button
                     className="side-item side-lib"
-                    aria-current={current("library", lib.path)}
-                    onClick={() => onSelect({ kind: "library", path: lib.path })}
+                    aria-current={current("library", source.path)}
+                    onClick={() => onSelect({ kind: "library", path: source.path })}
                   >
                     <FolderIcon />
-                    <span className="side-name">{baseName(lib.path)}</span>
-                    <span className="side-count">{lib.exists ? left.length : "missing"}</span>
+                    <span className="side-name">{source.name}</span>
+                    <span className="side-count">{source.exists ? left.length : "missing"}</span>
                   </button>
-                  <button className="side-forget" aria-label={`Stop listing ${baseName(lib.path)}`} title="Remove this source of mods" onClick={() => onForgetLibrary(lib.path)}>
-                    ✕
-                  </button>
+                  {forget}
                 </div>
                 <ul className="side-candidates">
                   {left.map((e) => (

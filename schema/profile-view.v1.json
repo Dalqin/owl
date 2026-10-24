@@ -7,32 +7,24 @@
     "check": {
       "$ref": "#/$defs/CheckReport"
     },
-    "individuals": {
-      "description": "Single mods picked one at a time and not added yet.",
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/IndividualMod"
-      }
-    },
-    "libraries": {
-      "description": "The player's mod libraries, with what is in each.",
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/Library"
-      }
-    },
     "mods": {
       "type": "array",
       "items": {
         "$ref": "#/$defs/ProfileModView"
+      }
+    },
+    "sources": {
+      "description": "The places the player chose to look for mods, in the order they were added.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/SourceView"
       }
     }
   },
   "required": [
     "mods",
     "check",
-    "libraries",
-    "individuals"
+    "sources"
   ],
   "$defs": {
     "CheckReport": {
@@ -409,6 +401,21 @@
         "value"
       ]
     },
+    "FolderKind": {
+      "description": "What a folder the player chose is.",
+      "oneOf": [
+        {
+          "description": "One mod: its files, plugins or installer are right there.",
+          "type": "string",
+          "const": "mod"
+        },
+        {
+          "description": "Many mods side by side.",
+          "type": "string",
+          "const": "library"
+        }
+      ]
+    },
     "FomodInfo": {
       "type": "object",
       "properties": {
@@ -541,27 +548,6 @@
         "select_at_most_one"
       ]
     },
-    "IndividualMod": {
-      "description": "A single mod's folder, picked on its own rather than found in a library.",
-      "type": "object",
-      "properties": {
-        "exists": {
-          "type": "boolean"
-        },
-        "name": {
-          "description": "The folder's name.",
-          "type": "string"
-        },
-        "path": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "name",
-        "path",
-        "exists"
-      ]
-    },
     "InfoField": {
       "type": "object",
       "properties": {
@@ -577,39 +563,15 @@
         "value"
       ]
     },
-    "Library": {
-      "type": "object",
-      "properties": {
-        "entries": {
-          "description": "Sorted by name, ignoring letter case.",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/LibraryEntry"
-          }
-        },
-        "exists": {
-          "type": "boolean"
-        },
-        "path": {
-          "type": "string"
-        },
-        "truncated": {
-          "description": "There were more entries than are listed.",
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "path",
-        "exists",
-        "entries",
-        "truncated"
-      ]
-    },
     "LibraryEntry": {
       "type": "object",
       "properties": {
         "added": {
           "description": "A mod from this folder is already on the player's list.",
+          "type": "boolean"
+        },
+        "in_cfg": {
+          "description": "The player's own `openmw.cfg` (not what Owl wrote) already has a `data=`\nline for this folder or one inside it, so the mod is set up some other way.",
           "type": "boolean"
         },
         "kind": {
@@ -627,7 +589,8 @@
         "name",
         "path",
         "kind",
-        "added"
+        "added",
+        "in_cfg"
       ]
     },
     "LoadOrderEntry": {
@@ -993,6 +956,50 @@
       },
       "required": [
         "url"
+      ]
+    },
+    "SourceView": {
+      "description": "One source, with what is in it.",
+      "type": "object",
+      "properties": {
+        "entries": {
+          "description": "For a library, the mods and archives in it. Empty for a single mod.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LibraryEntry"
+          }
+        },
+        "exists": {
+          "description": "False when the folder is gone (moved, renamed, or on a drive that is not connected).",
+          "type": "boolean"
+        },
+        "in_cfg": {
+          "description": "For a single mod: the player's own `openmw.cfg` already points at it.",
+          "type": "boolean"
+        },
+        "kind": {
+          "$ref": "#/$defs/FolderKind"
+        },
+        "name": {
+          "description": "The folder's name.",
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "truncated": {
+          "description": "A library had more entries than are listed.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path",
+        "name",
+        "kind",
+        "exists",
+        "entries",
+        "truncated",
+        "in_cfg"
       ]
     },
     "Step": {

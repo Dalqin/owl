@@ -169,6 +169,17 @@ fn entry_key(line: &str) -> Option<(String, String)> {
     Some((key.to_string(), value))
 }
 
+/// Folders named by `data=` entries, in file order, from cfg text. Quotes and a
+/// trailing slash are removed.
+pub fn data_entries(text: &str) -> Vec<String> {
+    text.lines()
+        .filter_map(|l| match entry_key(l)? {
+            (key, value) if key == "data" => Some(value),
+            _ => None,
+        })
+        .collect()
+}
+
 /// Names of `content=` entries, in file order, from cfg text.
 pub fn content_entries(text: &str) -> Vec<String> {
     text.lines()
@@ -400,6 +411,12 @@ pub(crate) mod tests {
             manifest: m,
             root: Path::new(root),
         }
+    }
+
+    #[test]
+    fn data_entries_lists_the_folders_without_quotes_or_trailing_slashes() {
+        let text = "# data=/not/this\ncontent=A.esp\ndata=\"/mods/a b/\"\ndata=/mods/c\n";
+        assert_eq!(data_entries(text), vec!["/mods/a b", "/mods/c"]);
     }
 
     #[test]

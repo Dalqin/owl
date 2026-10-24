@@ -21,12 +21,10 @@ import App from "./App.jsx";
 vi.mock("./api.js", () => ({
   locateConfig: vi.fn(),
   chooseFolder: vi.fn(),
-  addIndividual: vi.fn(),
-  removeIndividual: vi.fn(),
+  addSource: vi.fn(),
+  removeSource: vi.fn(),
   scanFolder: vi.fn(),
   classifyFolder: vi.fn(),
-  addLibrary: vi.fn(),
-  removeLibrary: vi.fn(),
   previewMod: vi.fn(),
   previewStoredMod: vi.fn(),
   addToProfile: vi.fn(),
@@ -53,9 +51,8 @@ beforeEach(() => {
   api.chooseFolder.mockResolvedValue("/fixtures/fomod");
   api.scanFolder.mockResolvedValue(scan);
   api.classifyFolder.mockResolvedValue("mod");
-  api.addLibrary.mockResolvedValue(true);
-  api.addIndividual.mockResolvedValue(true);
-  api.removeLibrary.mockResolvedValue(undefined);
+  api.addSource.mockResolvedValue(true);
+  api.removeSource.mockResolvedValue(undefined);
   api.addToProfile.mockResolvedValue(undefined);
   api.loadProfile.mockResolvedValue(healthy);
   api.profilePath.mockResolvedValue("/p/profile.json");
@@ -70,10 +67,30 @@ beforeEach(() => {
 });
 
 const sidebar = () => screen.getByRole("navigation", { name: "Your mods" });
+// Opens "Manage my sources" and presses "Add a source", which opens the folder chooser.
+const addSource = async () => {
+  fireEvent.click(await within(await screen.findByRole("navigation")).findByRole("button", { name: "Manage my sources" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Add a source" }));
+};
+
+// Presses "Add a source" and stays there; for the folder chooser's own behaviour.
+const startAdd = async () => {
+  api.loadProfile.mockResolvedValue(empty);
+  render(<App />);
+  await addSource();
+};
+
+// Adds the fixture mod's folder as a source, then opens that mod from the list of sources.
 const openAdd = async () => {
   api.loadProfile.mockResolvedValue(empty);
   render(<App />);
-  fireEvent.click(await within(await screen.findByRole("navigation")).findByRole("button", { name: "+ Add a mod" }));
+  await screen.findByText(/You have no sources yet/);
+  api.loadProfile.mockResolvedValue({
+    ...empty,
+    sources: [{ name: "fomod", path: "/fixtures/fomod", kind: "mod", exists: true, entries: [], truncated: false, in_cfg: false }],
+  });
+  await addSource();
+  fireEvent.click(await screen.findByRole("button", { name: "Open fomod" }));
 };
 
 describe("App shell", () => {
@@ -88,11 +105,13 @@ describe("App shell", () => {
     expect(await screen.findByText(/Could not find your OpenMW settings/)).toBeInTheDocument();
   });
 
-  it("starts on adding a mod when the list is empty", async () => {
+  it("starts on the sources when the list is empty", async () => {
     api.loadProfile.mockResolvedValue(empty);
     render(<App />);
-    expect(await screen.findByText(/Choose one mod.s folder/)).toBeInTheDocument();
-    expect(within(sidebar()).getByRole("button", { name: "+ Add a mod" })).toHaveAttribute("aria-current", "page");
+    expect(await screen.findByText(/A source is a place on your computer/)).toBeInTheDocument();
+    expect(screen.getByText(/You have no sources yet/)).toBeInTheDocument();
+    expect(within(sidebar()).getByRole("button", { name: "Manage my sources" })).toHaveAttribute("aria-current", "page");
+    expect(api.chooseFolder).not.toHaveBeenCalled(); // looking is not choosing
   });
 
   it("starts on all modules when there are mods, with the mods listed in order", async () => {
@@ -167,17 +186,17 @@ describe("adding a mod", () => {
 
   it("does nothing when the folder picker is cancelled", async () => {
     api.chooseFolder.mockResolvedValue(null);
-    await openAdd();
+    await startAdd();
     await waitFor(() => expect(api.chooseFolder).toHaveBeenCalled());
     expect(api.scanFolder).not.toHaveBeenCalled();
   });
 
   it("says so when the system's folder chooser cannot open", async () => {
     api.chooseFolder.mockRejectedValue("no portal is running");
-    await openAdd();
+    await startAdd();
     expect(await screen.findByRole("alert")).toHaveTextContent("The folder chooser could not open: no portal is running");
     expect(api.scanFolder).not.toHaveBeenCalled();
-    expect(within(sidebar()).getByRole("button", { name: "+ Add a mod" })).toBeEnabled(); // can try again
+    expect(screen.getByRole("button", { name: "Add a source" })).toBeEnabled(); // can try again
   });
 });
 
@@ -235,6 +254,17 @@ describe("changing a mod that is already on the list", () => {
     await screen.findByText("Discard");
     expect(screen.getByLabelText("Remove Fixture")).toBeDisabled();
     expect(screen.getByLabelText("Move Fixture up")).toBeDisabled();
+  });
+
+  it("still lets the player remove a mod whose saved answers are out of date", async () => {
+    // Nothing was typed, but the installer now leads somewhere other than what was saved.
+    api.previewStoredMod.mockResolvedValue({ ...(await api.previewStoredMod({ fomodChoices: [] })), changed: true });
+    await open();
+    expect(screen.getByText("Save changes")).toBeEnabled();
+    expect(screen.getByText(/reads this mod's installer differently/)).toBeInTheDocument();
+    expect(screen.queryByText("Discard")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Remove Fixture")).toBeEnabled();
+    expect(screen.getByText("Refresh")).toBeEnabled();
   });
 
   it("moves a mod and keeps it selected at its new position", async () => {
@@ -342,30 +372,39 @@ describe("the author's pictures", () => {
 });
 
 describe("a folder that is one mod", () => {
-  it("joins the individual mods, opens, and is shown selected in the left list", async () => {
+  it("becomes a source and is listed, and the player stays on the sources", async () => {
     api.loadProfile.mockResolvedValue(empty);
-    api.addIndividual.mockResolvedValue(true);
     render(<App />);
-    fireEvent.click(await within(await screen.findByRole("navigation")).findByRole("button", { name: "+ Add a mod" }));
+    await screen.findByText(/You have no sources yet/);
     api.loadProfile.mockResolvedValue({
       ...empty,
-      individuals: [{ name: "fomod", path: "/fixtures/fomod", exists: true }],
+      sources: [{ name: "fomod", path: "/fixtures/fomod", kind: "mod", exists: true, entries: [], truncated: false, in_cfg: false }],
     });
-    expect(await screen.findByText("Installer: Fixture FOMOD")).toBeInTheDocument();
-    expect(api.addIndividual).toHaveBeenCalledWith("/fixtures/fomod");
-    expect(await within(sidebar()).findByText("Individual mods")).toBeInTheDocument();
-    expect(within(sidebar()).getByRole("button", { name: "fomod" })).toHaveAttribute("aria-current", "page");
+    await addSource();
+    await waitFor(() => expect(api.addSource).toHaveBeenCalledWith("/fixtures/fomod", "mod"));
+    expect(await screen.findByText("Added “fomod” as a source")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "My sources" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open fomod" })).toBeInTheDocument(); // listed, not opened
+    expect(within(sidebar()).getByRole("button", { name: "fomod" })).not.toHaveAttribute("aria-current", "page");
+    expect(api.scanFolder).not.toHaveBeenCalled();
+  });
+
+  it("says when the folder was already a source", async () => {
+    api.loadProfile.mockResolvedValue(empty);
+    api.addSource.mockResolvedValue(false);
+    render(<App />);
+    await addSource();
+    expect(await screen.findByText("“fomod” is already a source")).toBeInTheDocument();
   });
 
   it("can be forgotten from the left list without adding it", async () => {
-    api.removeIndividual.mockResolvedValue(undefined);
     api.loadProfile.mockResolvedValue({
       ...empty,
-      individuals: [{ name: "fomod", path: "/fixtures/fomod", exists: true }],
+      sources: [{ name: "fomod", path: "/fixtures/fomod", kind: "mod", exists: true, entries: [], truncated: false, in_cfg: false }],
     });
     render(<App />);
-    fireEvent.click(await within(await screen.findByRole("navigation")).findByRole("button", { name: "Forget fomod" }));
-    await waitFor(() => expect(api.removeIndividual).toHaveBeenCalledWith("/fixtures/fomod"));
+    fireEvent.click(await within(await screen.findByRole("navigation")).findByRole("button", { name: "Stop listing fomod" }));
+    await waitFor(() => expect(api.removeSource).toHaveBeenCalledWith("/fixtures/fomod"));
   });
 });
 
@@ -375,7 +414,7 @@ describe("a folder that holds many mods", () => {
     api.chooseFolder.mockResolvedValue("/fixtures/library");
     api.classifyFolder.mockResolvedValue("library");
     render(<App />);
-    fireEvent.click(await within(await screen.findByRole("navigation")).findByRole("button", { name: "+ Add a mod" }));
+    await addSource();
     await screen.findByText("This folder holds several mods");
   };
 
@@ -383,16 +422,19 @@ describe("a folder that holds many mods", () => {
     await chooseLibrary();
     expect(api.classifyFolder).toHaveBeenCalledWith("/fixtures/library");
     expect(api.scanFolder).not.toHaveBeenCalled();
-    expect(api.addLibrary).not.toHaveBeenCalled();
+    expect(api.addSource).not.toHaveBeenCalled();
   });
 
-  it("remembers it and shows its mods in the list, with the folder open", async () => {
+  it("remembers it and shows its mods in the list, and stays on the sources", async () => {
     await chooseLibrary();
     api.loadProfile.mockResolvedValue(libraryView);
     fireEvent.click(screen.getByText("Show its mods in my list"));
-    await waitFor(() => expect(api.addLibrary).toHaveBeenCalledWith("/fixtures/library"));
-    expect(await screen.findByRole("heading", { name: "library" })).toBeInTheDocument();
-    expect(within(sidebar()).getByRole("button", { name: /^library/ })).toHaveAttribute("aria-current", "page");
+    await waitFor(() => expect(api.addSource).toHaveBeenCalledWith("/fixtures/library", "library"));
+    expect(await screen.findByText("Added “library” as a source")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "My sources" })).toBeInTheDocument();
+    expect(screen.queryByText("This folder holds several mods")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "library" })).not.toBeInTheDocument(); // not opened
+    expect(within(sidebar()).getByRole("button", { name: /^library/ })).not.toHaveAttribute("aria-current", "page");
     // Only the mods that are not on the list yet are offered in the left list.
     expect(within(sidebar()).getByRole("button", { name: "Beta Installer" })).toBeInTheDocument();
     expect(within(sidebar()).queryByRole("button", { name: "Alpha Mod" })).not.toBeInTheDocument();
@@ -402,10 +444,11 @@ describe("a folder that holds many mods", () => {
   it("can be read as one mod instead, when the player says it is one", async () => {
     await chooseLibrary();
     fireEvent.click(screen.getByText("It is one mod"));
-    expect(await screen.findByText("Installer: Fixture FOMOD")).toBeInTheDocument();
-    expect(api.addIndividual).toHaveBeenCalledWith("/fixtures/library");
-    expect(api.scanFolder).toHaveBeenCalledWith("/fixtures/library");
-    expect(api.addLibrary).not.toHaveBeenCalled();
+    await waitFor(() => expect(api.addSource).toHaveBeenCalledWith("/fixtures/library", "mod"));
+    expect(api.addSource).not.toHaveBeenCalledWith("/fixtures/library", "library");
+    expect(await screen.findByText("Added “library” as a source")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "My sources" })).toBeInTheDocument();
+    expect(api.scanFolder).not.toHaveBeenCalled(); // listed, not opened
   });
 
   it("lists everything in the folder, says what each is, and offers to open only what can be added", async () => {
@@ -416,7 +459,9 @@ describe("a folder that holds many mods", () => {
     const entries = (await screen.findAllByRole("listitem")).filter((li) => li.classList.contains("library-entry"));
     expect(entries.map((li) => li.querySelector(".library-name").textContent)).toEqual(["Alpha Mod", "Beta Installer", "Docs", "Packed.7z"]);
     expect(within(entries[0]).getByText("On your list")).toBeInTheDocument();
-    expect(within(entries[1]).getByText("Ready to add")).toBeInTheDocument();
+    // The sample's own settings already point at Beta Installer.
+    expect(within(entries[1]).getByText("Already in your OpenMW settings, not added by Owl")).toBeInTheDocument();
+    expect(within(entries[1]).getByLabelText("Open Beta Installer")).toBeInTheDocument();
     expect(within(entries[2]).getByText("No mod found in this folder.")).toBeInTheDocument();
     expect(within(entries[3]).getByText(/Extract it first/)).toBeInTheDocument();
     expect(screen.queryByLabelText("Open Alpha Mod")).not.toBeInTheDocument();
@@ -433,7 +478,7 @@ describe("a folder that holds many mods", () => {
     expect(api.scanFolder).toHaveBeenCalledWith("/fixtures/library/Beta Installer");
 
     const added = structuredClone(libraryView);
-    added.libraries[0].entries[1].added = true;
+    added.sources[0].entries[1].added = true;
     added.mods.push({ ...fomodView.mods[0], root: "/fixtures/library/Beta Installer" });
     added.check.mods.push(fomodView.check.mods[0]);
     api.loadProfile.mockResolvedValue(added);
@@ -456,12 +501,72 @@ describe("a folder that holds many mods", () => {
     render(<App />);
     await screen.findByText(/problems? to look at:|No problems found\./);
     fireEvent.click(within(sidebar()).getByRole("button", { name: /^library/ }));
-    api.loadProfile.mockResolvedValue({ ...libraryView, libraries: [libraryView.libraries[1]] });
+    api.loadProfile.mockResolvedValue({ ...libraryView, sources: libraryView.sources.slice(1) });
     fireEvent.click(within(sidebar()).getByRole("button", { name: "Stop listing library" }));
-    await waitFor(() => expect(api.removeLibrary).toHaveBeenCalledWith(0));
-    expect(await screen.findByText(/Choose one mod.s folder/)).toBeInTheDocument();
+    await waitFor(() => expect(api.removeSource).toHaveBeenCalledWith("/fixtures/library"));
+    expect(await screen.findByText(/A source is a place on your computer/)).toBeInTheDocument();
     expect(api.removeFromProfile).not.toHaveBeenCalled();
     expect(within(sidebar()).getByRole("button", { name: /Alpha Mod/ })).toBeInTheDocument(); // still on the list
+  });
+});
+
+describe("managing sources", () => {
+  const open = async () => {
+    api.loadProfile.mockResolvedValue(libraryView);
+    render(<App />);
+    await screen.findByText(/problems? to look at:|No problems found\./);
+    fireEvent.click(within(sidebar()).getByRole("button", { name: "Manage my sources" }));
+    await screen.findByRole("heading", { name: "My sources" });
+  };
+  const rows = () => screen.getAllByRole("listitem").filter((li) => li.classList.contains("library-entry"));
+
+  it("explains what a source is, and that removing one changes nothing else", async () => {
+    await open();
+    expect(screen.getByText(/A source is a place on your computer where Owl looks for mods/)).toBeInTheDocument();
+    expect(screen.getByText(/does not delete any files, change your OpenMW settings/)).toBeInTheDocument();
+  });
+
+  it("lists every source with where it is and what is in it", async () => {
+    await open();
+    const text = rows().map((li) => [li.querySelector(".library-name").textContent, li.querySelector(".library-status").textContent]);
+    expect(text).toEqual([
+      ["library", "2 mods in this folder, 1 not on your list yet."],
+      ["no-such-library", "This folder is not there any more. It may be on a drive that is not connected."],
+      ["simple", "One mod that is not on your list yet."],
+      ["no-such-mod", "This folder is not there any more. It may be on a drive that is not connected."],
+    ]);
+    expect(within(rows()[0]).getByText("/fixtures/library")).toBeInTheDocument();
+    // A folder that is gone cannot be opened, but it can still be removed.
+    expect(within(rows()[1]).queryByRole("button", { name: /^Open/ })).not.toBeInTheDocument();
+    expect(within(rows()[1]).getByRole("button", { name: "Remove source no-such-library" })).toBeInTheDocument();
+  });
+
+  it("opens a source from the list", async () => {
+    await open();
+    fireEvent.click(screen.getByRole("button", { name: "Open library" }));
+    expect(await screen.findByRole("heading", { name: "library" })).toBeInTheDocument();
+  });
+
+  it("removes a source and stays on the sources, without touching openmw.cfg or the list of mods", async () => {
+    await open();
+    api.loadProfile.mockResolvedValue({ ...libraryView, sources: libraryView.sources.filter((s) => s.path !== "/fixtures/library") });
+    fireEvent.click(screen.getByRole("button", { name: "Remove source library" }));
+    await waitFor(() => expect(api.removeSource).toHaveBeenCalledWith("/fixtures/library"));
+    await waitFor(() => expect(rows().map((li) => li.querySelector(".library-name").textContent)).not.toContain("library"));
+    expect(screen.getByRole("heading", { name: "My sources" })).toBeInTheDocument();
+    expect(api.planApply).not.toHaveBeenCalled();
+    expect(api.applyChanges).not.toHaveBeenCalled();
+    expect(api.removeFromProfile).not.toHaveBeenCalled();
+  });
+
+  it("says when a mod in a source is already in the player's OpenMW settings", async () => {
+    const view = structuredClone(libraryView);
+    view.sources[2].in_cfg = true;
+    api.loadProfile.mockResolvedValue(view);
+    render(<App />);
+    await screen.findByText(/problems? to look at:|No problems found\./);
+    fireEvent.click(within(sidebar()).getByRole("button", { name: "Manage my sources" }));
+    expect(await screen.findByText("One mod, already in your OpenMW settings (not added by Owl).")).toBeInTheDocument();
   });
 });
 
@@ -496,7 +601,7 @@ describe("an installer question with no default", () => {
   it("keeps the mod from being added until it is answered, and says what is left", async () => {
     await openQuestion();
     expect(screen.getByText("Add to my mods")).toBeDisabled();
-    expect(screen.getByRole("status")).toHaveTextContent("1 question to answer before this can be added: Variant.");
+    expect(screen.getByText(/question to answer before this can be added/)).toHaveTextContent("1 question to answer before this can be added: Variant.");
     fireEvent.click(screen.getByRole("radio", { name: /^B/ }));
     await waitFor(() => expect(screen.getByText("Add to my mods")).toBeEnabled());
     expect(screen.queryByRole("note", { name: "Still to answer" })).not.toBeInTheDocument();

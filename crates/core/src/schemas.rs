@@ -283,6 +283,8 @@ mod tests {
         ));
         // A library of mods with one of them already on the list.
         {
+            let source = |path: std::path::PathBuf, kind| crate::profile::Source { path, kind };
+            use crate::library::FolderKind;
             let alpha = fixtures.join("library").join("Alpha Mod");
             let mut m =
                 Manifest::from_scan("Alpha Mod", &scan(&alpha, &ScanOptions::default()).unwrap());
@@ -292,9 +294,17 @@ mod tests {
                     manifest: m,
                     root: alpha,
                 }],
-                "content=Morrowind.esm\n",
-                &[fixtures.join("library"), fixtures.join("no-such-library")],
-                &[fixtures.join("simple"), fixtures.join("no-such-mod")],
+                // Beta Installer is already set up in the player's own settings.
+                &format!(
+                    "content=Morrowind.esm\ndata=\"{}\"\n",
+                    fixtures.join("library").join("Beta Installer").display()
+                ),
+                &[
+                    source(fixtures.join("library"), FolderKind::Library),
+                    source(fixtures.join("no-such-library"), FolderKind::Library),
+                    source(fixtures.join("simple"), FolderKind::Mod),
+                    source(fixtures.join("no-such-mod"), FolderKind::Mod),
+                ],
             );
             samples.push((
                 "profile-view-library.json",

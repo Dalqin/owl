@@ -4,7 +4,8 @@ import { unknown } from "../unknown.js";
 function status(entry) {
   switch (entry.kind) {
     case "mod":
-      return entry.added ? "On your list" : "Ready to add";
+      if (entry.added) return "On your list";
+      return entry.in_cfg ? "Already in your OpenMW settings, not added by Owl" : "Ready to add";
     case "archive":
       return "An archive. Extract it first, then choose the extracted folder.";
     case "other":

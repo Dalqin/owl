@@ -84,55 +84,71 @@
       }
     ]
   },
-  "libraries": [
+  "sources": [
     {
       "path": "/fixtures/library",
+      "name": "library",
+      "kind": "library",
       "exists": true,
       "entries": [
         {
           "name": "Alpha Mod",
           "path": "/fixtures/library/Alpha Mod",
           "kind": "mod",
-          "added": true
+          "added": true,
+          "in_cfg": false
         },
         {
           "name": "Beta Installer",
           "path": "/fixtures/library/Beta Installer",
           "kind": "mod",
-          "added": false
+          "added": false,
+          "in_cfg": true
         },
         {
           "name": "Docs",
           "path": "/fixtures/library/Docs",
           "kind": "other",
-          "added": false
+          "added": false,
+          "in_cfg": false
         },
         {
           "name": "Packed.7z",
           "path": "/fixtures/library/Packed.7z",
           "kind": "archive",
-          "added": false
+          "added": false,
+          "in_cfg": false
         }
       ],
-      "truncated": false
+      "truncated": false,
+      "in_cfg": false
     },
     {
       "path": "/fixtures/no-such-library",
+      "name": "no-such-library",
+      "kind": "library",
       "exists": false,
       "entries": [],
-      "truncated": false
-    }
-  ],
-  "individuals": [
-    {
-      "name": "simple",
-      "path": "/fixtures/simple",
-      "exists": true
+      "truncated": false,
+      "in_cfg": false
     },
     {
-      "name": "no-such-mod",
+      "path": "/fixtures/simple",
+      "name": "simple",
+      "kind": "mod",
+      "exists": true,
+      "entries": [],
+      "truncated": false,
+      "in_cfg": false
+    },
+    {
       "path": "/fixtures/no-such-mod",
-      "exists": false
+      "name": "no-such-mod",
+      "kind": "mod",
+      "exists": false,
+      "entries": [],
+      "truncated": false,
+      "in_cfg": false
     }
   ]
 }
