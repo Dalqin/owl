@@ -10,6 +10,6 @@ User-facing docs, one folder per product. Each product doc covers what it does, 
 
 Why things are the way they are: [decisions/](decisions/0001-flatpak-distribution.md) (architecture decision records).
 
-Project background: [research.md](research.md). OpenMW features a real mod list needs, and the plan to support them: [engine-options.md](engine-options.md).
+Releasing: [releasing.md](releasing.md). Project background: [research.md](research.md). OpenMW features a real mod list needs, and the plan to support them: [engine-options.md](engine-options.md).
 
 When a product gains a feature, flag, environment variable or file it touches, update its doc in the same change.

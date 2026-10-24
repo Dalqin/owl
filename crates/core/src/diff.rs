@@ -40,7 +40,10 @@ fn full(old: &[&str], new: &[&str]) -> Vec<DiffLine> {
         .zip(new[prefix..].iter().rev())
         .take_while(|(a, b)| a == b)
         .count();
-    let (o, n) = (&old[prefix..old.len() - suffix], &new[prefix..new.len() - suffix]);
+    let (o, n) = (
+        &old[prefix..old.len() - suffix],
+        &new[prefix..new.len() - suffix],
+    );
 
     // Longest common subsequence of the middle, by table; config files are small.
     let w = n.len() + 1;
@@ -62,13 +65,18 @@ fn full(old: &[&str], new: &[&str]) -> Vec<DiffLine> {
         text: text.to_string(),
     };
     let mut out = Vec::with_capacity(old.len().max(new.len()));
-    for k in 0..prefix {
-        out.push(line(DiffKind::Context, Some(k), Some(k), old[k]));
+    for (k, text) in old.iter().take(prefix).enumerate() {
+        out.push(line(DiffKind::Context, Some(k), Some(k), text));
     }
     let (mut i, mut j) = (0, 0);
     while i < o.len() || j < n.len() {
         if i < o.len() && j < n.len() && o[i] == n[j] {
-            out.push(line(DiffKind::Context, Some(prefix + i), Some(prefix + j), o[i]));
+            out.push(line(
+                DiffKind::Context,
+                Some(prefix + i),
+                Some(prefix + j),
+                o[i],
+            ));
             i += 1;
             j += 1;
         } else if i < o.len() && (j == n.len() || lcs[(i + 1) * w + j] >= lcs[i * w + j + 1]) {
@@ -164,7 +172,10 @@ mod tests {
         let d = diff("a\nb\nc\n", "a\nb\nX\nc\n");
         assert_eq!(kinds(&d), [' ', ' ', '+', ' ']);
         assert_eq!((d[2].old_line, d[2].new_line), (None, Some(3)));
-        assert_eq!((d[3].old_line, d[3].new_line, d[3].text.as_str()), (Some(3), Some(4), "c"));
+        assert_eq!(
+            (d[3].old_line, d[3].new_line, d[3].text.as_str()),
+            (Some(3), Some(4), "c")
+        );
     }
 
     #[test]
@@ -195,7 +206,11 @@ mod tests {
         with_markers.push("[end]".to_string());
         let mut changed = with_markers.clone();
         changed.insert(11, "new".into());
-        let d = diff_with_anchors(&with_markers.join("\n"), &changed.join("\n"), &["[begin]", "[end]"]);
+        let d = diff_with_anchors(
+            &with_markers.join("\n"),
+            &changed.join("\n"),
+            &["[begin]", "[end]"],
+        );
         assert_eq!(d.first().unwrap().text, "[begin]");
         assert_eq!(d.last().unwrap().text, "[end]");
         assert!(d.iter().any(|l| l.kind == DiffKind::Gap));

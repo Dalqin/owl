@@ -81,7 +81,7 @@ pub fn store_dir(os: Os, env: &dyn Fn(&str) -> Option<OsString>) -> Result<PathB
         Os::Mac => home.map(|h| h.join("Library/Application Support")),
         Os::Linux => env("XDG_DATA_HOME")
             .map(PathBuf::from)
-            .filter(|p| p.is_absolute())
+            .filter(|p| p.has_root())
             .or_else(|| home.map(|h| h.join(".local/share"))),
     };
     base.map(|b| b.join("owl")).ok_or(ConfigError::NoStoreHome)
@@ -104,7 +104,7 @@ pub fn resolve(
     let sandboxed = env("FLATPAK_ID").is_some();
     let xdg = env("XDG_CONFIG_HOME")
         .map(PathBuf::from)
-        .filter(|p| p.is_absolute() && !sandboxed);
+        .filter(|p| p.has_root() && !sandboxed);
 
     let native_dir = match (&xdg, &home) {
         (Some(x), _) => x.clone(),

@@ -1,7 +1,7 @@
 name: Release
 
-# Push a tag such as v0.1.0 to build installers for Linux and Windows
-# and attach them to a draft GitHub release.
+# Push a tag such as v0.1.0 to build installers for Linux and Windows and
+# attach them to a draft GitHub release. Review the draft, then publish it.
 on:
   push:
     tags: ["v*"]
@@ -10,15 +10,46 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.create.outputs.release_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the tag matches the app versions
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          cargo_v=$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
+          tauri_v=$(jq -r .version ui/src-tauri/tauri.conf.json)
+          npm_v=$(jq -r .version ui/package.json)
+          echo "tag=$tag cargo=$cargo_v tauri=$tauri_v npm=$npm_v"
+          [ "$tag" = "$cargo_v" ] && [ "$tag" = "$tauri_v" ] && [ "$tag" = "$npm_v" ] || {
+            echo "::error::Tag $GITHUB_REF_NAME does not match the versions above"; exit 1; }
+
+      - name: Create the draft release
+        id: create
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
+            --title "Owl $GITHUB_REF_NAME" --generate-notes
+          id=$(gh api "repos/$GITHUB_REPOSITORY/releases" --jq \
+            "map(select(.tag_name == \"$GITHUB_REF_NAME\" and .draft)) | first | .id")
+          echo "release_id=$id" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: create-release
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
             bundles: deb,rpm,appimage
+            cli_archive: owl-linux-x86_64.tar.gz
           - os: windows-latest
             bundles: nsis
+            cli_archive: owl-windows-x86_64.zip
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -48,25 +79,26 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: ui
-          tagName: ${{ github.ref_name }}
-          releaseName: Owl ${{ github.ref_name }}
-          releaseDraft: true
+          releaseId: ${{ needs.create-release.outputs.release_id }}
           args: --bundles ${{ matrix.bundles }}
 
-      # The command-line tool ships separately from the desktop installers.
-      - name: Build the CLI
-        run: cargo build --release -p owl
-
+      # The command-line tool ships on its own, next to the desktop installers.
+      # The app's build step already compiled it (see beforeBuildCommand).
       - name: Package the CLI (Linux)
         if: runner.os == 'Linux'
-        run: tar -czf owl-${{ github.ref_name }}-linux-x86_64.tar.gz -C target/release owl
+        run: tar -czf "${{ matrix.cli_archive }}" -C target/release owl
       - name: Package the CLI (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: Compress-Archive -Path target/release/owl.exe -DestinationPath owl-${{ github.ref_name }}-windows-x86_64.zip
+        run: Compress-Archive -Path target/release/owl.exe -DestinationPath "${{ matrix.cli_archive }}"
 
       - name: Attach the CLI to the release
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${{ github.ref_name }}" owl-${{ github.ref_name }}-* --clobber
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary "@${{ matrix.cli_archive }}" \
+            "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/${{ needs.create-release.outputs.release_id }}/assets?name=${{ matrix.cli_archive }}"

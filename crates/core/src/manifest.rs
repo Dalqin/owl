@@ -561,7 +561,13 @@ mod tests {
         stored.version = Some("1.2".into());
 
         // Replaying the stored answers gives the stored decisions back.
-        let same = preview_stored(&stored, stored.decisions.fomod_choices.clone(), vec![], vec![], None);
+        let same = preview_stored(
+            &stored,
+            stored.decisions.fomod_choices.clone(),
+            vec![],
+            vec![],
+            None,
+        );
         assert_eq!(same.manifest, stored);
         assert!(!same.changed, "same answers: nothing to save");
         assert!(same.fomod.is_some());
@@ -570,12 +576,19 @@ mod tests {
         let a = Choice::parse("Variant=A").unwrap();
         let other = preview_stored(&stored, vec![a.clone()], vec![], vec![], None);
         assert!(other.changed);
-        assert_eq!(other.manifest.decisions.datapaths, vec![PathBuf::from("Option A")]);
+        assert_eq!(
+            other.manifest.decisions.datapaths,
+            vec![PathBuf::from("Option A")]
+        );
         assert_eq!(other.manifest.decisions.fomod_choices, vec![a]);
         assert_eq!(other.manifest.name, "F");
         assert_eq!(other.manifest.version.as_deref(), Some("1.2"));
         assert_eq!(other.manifest.derived, stored.derived);
-        assert_eq!(stored.decisions.datapaths, vec![PathBuf::from("Option B")], "the stored copy is untouched");
+        assert_eq!(
+            stored.decisions.datapaths,
+            vec![PathBuf::from("Option B")],
+            "the stored copy is untouched"
+        );
     }
 
     #[test]
@@ -584,7 +597,10 @@ mod tests {
         let stored = preview(&report, "M", vec![], vec!["10 Plugin".into()], vec![], None).manifest;
         let p = preview_stored(&stored, vec![], vec!["20 Alt Plugin".into()], vec![], None);
         assert!(p.fomod.is_none() && p.issues.is_empty());
-        assert_eq!(p.manifest.decisions.datapaths, vec![PathBuf::from("20 Alt Plugin")]);
+        assert_eq!(
+            p.manifest.decisions.datapaths,
+            vec![PathBuf::from("20 Alt Plugin")]
+        );
         assert_eq!(p.manifest.decisions.enabled_plugins, vec!["Alt.esp"]);
         // A typo is reported, not stored silently.
         let bad = preview_stored(&stored, vec![], vec!["20 Alt Plugn".into()], vec![], None);
@@ -594,7 +610,13 @@ mod tests {
     #[test]
     fn a_stored_mod_with_nothing_to_change_is_returned_as_it_is() {
         let stored = Manifest::from_scan("S", &fixture("simple"));
-        let p = preview_stored(&stored, vec![], vec![], vec![], Some(&["Morrowind.esm".into()]));
+        let p = preview_stored(
+            &stored,
+            vec![],
+            vec![],
+            vec![],
+            Some(&["Morrowind.esm".into()]),
+        );
         assert_eq!(p.manifest, stored);
         assert_eq!(p.requirements[0].status, RequirementStatus::Satisfied);
     }
@@ -610,17 +632,36 @@ mod tests {
                 group: "Variant".into()
             }]
         );
-        let answered = preview(&report, "Q", vec![Choice::parse("Variant=B").unwrap()], vec![], vec![], None);
+        let answered = preview(
+            &report,
+            "Q",
+            vec![Choice::parse("Variant=B").unwrap()],
+            vec![],
+            vec![],
+            None,
+        );
         assert!(answered.unanswered.is_empty());
         // The same goes for a mod that is already on the list.
         let stored = preview_stored(&answered.manifest, vec![], vec![], vec![], None);
-        assert_eq!(stored.unanswered.len(), 1, "no answers given, so it is open again");
+        assert_eq!(
+            stored.unanswered.len(),
+            1,
+            "no answers given, so it is open again"
+        );
     }
 
     #[test]
     fn installers_with_defaults_and_mods_without_installers_have_no_open_questions() {
-        assert!(preview(&fixture("fomod"), "F", vec![], vec![], vec![], None).unanswered.is_empty());
-        assert!(preview(&fixture("simple"), "S", vec![], vec![], vec![], None).unanswered.is_empty());
+        assert!(
+            preview(&fixture("fomod"), "F", vec![], vec![], vec![], None)
+                .unanswered
+                .is_empty()
+        );
+        assert!(
+            preview(&fixture("simple"), "S", vec![], vec![], vec![], None)
+                .unanswered
+                .is_empty()
+        );
     }
 
     #[test]
