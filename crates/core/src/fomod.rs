@@ -190,12 +190,14 @@ pub enum FomodError {
 pub fn decode(bytes: &[u8]) -> String {
     let utf16 = |rest: &[u8], le: bool| {
         let units: Vec<u16> = rest
-            .chunks_exact(2)
-            .map(|c| {
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|&c| {
                 if le {
-                    u16::from_le_bytes([c[0], c[1]])
+                    u16::from_le_bytes(c)
                 } else {
-                    u16::from_be_bytes([c[0], c[1]])
+                    u16::from_be_bytes(c)
                 }
             })
             .collect();
@@ -696,18 +698,18 @@ pub fn resolve(
                 reason,
             };
             match (group.kind, picked.len()) {
-                (GroupKind::SelectExactlyOne, 0) | (GroupKind::SelectAtLeastOne, 0) => ctx
-                    .problems
-                    .push(unresolved(
+                (GroupKind::SelectExactlyOne, 0) | (GroupKind::SelectAtLeastOne, 0) => {
+                    ctx.problems.push(unresolved(
                         Unresolved::ChoiceNeeded,
                         format!("a choice is needed: {}", names()),
-                    )),
-                (GroupKind::SelectExactlyOne | GroupKind::SelectAtMostOne, n) if n > 1 => ctx
-                    .problems
-                    .push(unresolved(
+                    ))
+                }
+                (GroupKind::SelectExactlyOne | GroupKind::SelectAtMostOne, n) if n > 1 => {
+                    ctx.problems.push(unresolved(
                         Unresolved::TooManyChosen,
                         format!("only one may be chosen: {}", names()),
-                    )),
+                    ))
+                }
                 _ => {}
             }
 
@@ -949,9 +951,19 @@ mod tests {
             <plugin name="Without"/>
           </plugins></group></optionalFileGroups></installStep></installSteps></config>"#;
         let info = parse(xml, Path::new("Pack")).unwrap();
-        assert_eq!(info.module_image, Some(PathBuf::from("Pack/Screenshots/Header.png")));
-        let images: Vec<_> = info.steps[0].groups[0].options.iter().map(|o| o.image.clone()).collect();
-        assert_eq!(images, vec![Some(PathBuf::from("Pack/Screenshots/one.png")), None, None]);
+        assert_eq!(
+            info.module_image,
+            Some(PathBuf::from("Pack/Screenshots/Header.png"))
+        );
+        let images: Vec<_> = info.steps[0].groups[0]
+            .options
+            .iter()
+            .map(|o| o.image.clone())
+            .collect();
+        assert_eq!(
+            images,
+            vec![Some(PathBuf::from("Pack/Screenshots/one.png")), None, None]
+        );
     }
 
     #[test]
@@ -1369,11 +1381,15 @@ mod tests {
         let info = parse(BUNDLE, Path::new("")).unwrap();
         let r = resolve(&info, &[pick("Textures", "Both")], &bundle_candidates());
         assert!(r.datapaths.contains(&PathBuf::from("02 Mushrooms")));
-        assert!(r.problems.iter().any(|p| matches!(
-            p,
-            FomodProblem::NotRepresentable { source, reason }
-                if source == "02 Mushrooms" && reason.contains("textures")
-        )), "{:?}", r.problems);
+        assert!(
+            r.problems.iter().any(|p| matches!(
+                p,
+                FomodProblem::NotRepresentable { source, reason }
+                    if source == "02 Mushrooms" && reason.contains("textures")
+            )),
+            "{:?}",
+            r.problems
+        );
     }
 
     #[test]

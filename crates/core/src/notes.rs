@@ -139,7 +139,10 @@ pub fn collect(root: &Path, max_depth: usize) -> ModNotes {
             .first()
             .and_then(|(_, rel)| fs::read(root.join(rel)).ok())
             .and_then(|bytes| parse_info(&fomod::decode(&bytes))),
-        documents: docs.into_iter().map(|(_, rel)| read_document(root, rel)).collect(),
+        documents: docs
+            .into_iter()
+            .map(|(_, rel)| read_document(root, rel))
+            .collect(),
     }
 }
 
@@ -197,7 +200,8 @@ fn read_document(root: &Path, rel: PathBuf) -> NoteDocument {
         return doc;
     }
     let mut bytes = Vec::new();
-    let read = File::open(root.join(&rel)).and_then(|f| f.take(MAX_READ + 1).read_to_end(&mut bytes));
+    let read =
+        File::open(root.join(&rel)).and_then(|f| f.take(MAX_READ + 1).read_to_end(&mut bytes));
     if let Err(e) = read {
         doc.error = Some(e.to_string());
         return doc;
@@ -244,7 +248,10 @@ const CP1252: [char; 32] = [
 /// valid UTF-8 is taken as UTF-8, and anything else is Windows-1252, which is
 /// what readmes from the Morrowind era are written in.
 pub fn decode_text(bytes: &[u8]) -> String {
-    if bytes.starts_with(&[0xFF, 0xFE]) || bytes.starts_with(&[0xFE, 0xFF]) || bytes.starts_with(&[0xEF, 0xBB, 0xBF]) {
+    if bytes.starts_with(&[0xFF, 0xFE])
+        || bytes.starts_with(&[0xFE, 0xFF])
+        || bytes.starts_with(&[0xEF, 0xBB, 0xBF])
+    {
         return fomod::decode(bytes);
     }
     // UTF-16 text in a mostly-ASCII language has a zero in every other byte. Zero
@@ -283,7 +290,10 @@ pub fn html_to_text(html: &str) -> String {
                 break;
             };
             let tag = lower[i + 1..i + end].trim_start_matches('/').trim();
-            let name: String = tag.chars().take_while(|c| c.is_ascii_alphanumeric()).collect();
+            let name: String = tag
+                .chars()
+                .take_while(|c| c.is_ascii_alphanumeric())
+                .collect();
             let closing = lower[i + 1..].starts_with('/');
             if (name == "script" || name == "style") && !closing {
                 let close = format!("</{name}");
@@ -293,9 +303,8 @@ pub fn html_to_text(html: &str) -> String {
                 continue;
             }
             match name.as_str() {
-                "br" | "p" | "div" | "tr" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "ul" | "ol" | "table" | "pre" => {
-                    out.push('\n')
-                }
+                "br" | "p" | "div" | "tr" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "ul"
+                | "ol" | "table" | "pre" => out.push('\n'),
                 "li" if !closing => out.push_str("\n- "),
                 "td" | "th" if closing => out.push('\t'),
                 _ => {}
@@ -393,16 +402,25 @@ pub fn parse_info(xml: &str) -> Option<ModInfo> {
                 .skip(1)
                 .flat_map(|d| {
                     if d.is_element() {
-                        d.attributes().map(|a| a.value().trim().to_string()).collect::<Vec<_>>()
+                        d.attributes()
+                            .map(|a| a.value().trim().to_string())
+                            .collect::<Vec<_>>()
                     } else {
-                        d.text().map(|t| vec![t.trim().to_string()]).unwrap_or_default()
+                        d.text()
+                            .map(|t| vec![t.trim().to_string()])
+                            .unwrap_or_default()
                     }
                 })
                 .filter(|v| !v.is_empty())
                 .collect::<Vec<_>>()
                 .join(", ")
         } else {
-            field.text().unwrap_or("").replace("\r\n", "\n").trim().to_string()
+            field
+                .text()
+                .unwrap_or("")
+                .replace("\r\n", "\n")
+                .trim()
+                .to_string()
         };
         let slot = match name.to_lowercase().as_str() {
             "name" => &mut info.name,
@@ -440,15 +458,27 @@ mod tests {
     fn decodes_each_encoding_a_readme_can_be_in() {
         assert_eq!(decode_text("plain café".as_bytes()), "plain café");
         assert_eq!(decode_text(b"\xEF\xBB\xBFwith mark"), "with mark");
-        let le: Vec<u8> = [0xFF, 0xFE].into_iter().chain("é x".encode_utf16().flat_map(u16::to_le_bytes)).collect();
+        let le: Vec<u8> = [0xFF, 0xFE]
+            .into_iter()
+            .chain("é x".encode_utf16().flat_map(u16::to_le_bytes))
+            .collect();
         assert_eq!(decode_text(&le), "é x");
-        let be: Vec<u8> = [0xFE, 0xFF].into_iter().chain("é x".encode_utf16().flat_map(u16::to_be_bytes)).collect();
+        let be: Vec<u8> = [0xFE, 0xFF]
+            .into_iter()
+            .chain("é x".encode_utf16().flat_map(u16::to_be_bytes))
+            .collect();
         assert_eq!(decode_text(&be), "é x");
         // No mark at all: recognised by the zero bytes.
-        let bare: Vec<u8> = "Hello there".encode_utf16().flat_map(u16::to_le_bytes).collect();
+        let bare: Vec<u8> = "Hello there"
+            .encode_utf16()
+            .flat_map(u16::to_le_bytes)
+            .collect();
         assert_eq!(decode_text(&bare), "Hello there");
         // Windows-1252: é, curly quotes, en dash, euro.
-        assert_eq!(decode_text(b"caf\xe9 \x93hi\x94 \x96 \x80"), "café “hi” – €");
+        assert_eq!(
+            decode_text(b"caf\xe9 \x93hi\x94 \x96 \x80"),
+            "café “hi” – €"
+        );
     }
 
     #[test]
@@ -472,13 +502,25 @@ mod tests {
         assert_eq!(info.name.as_deref(), Some("Notes Mod"));
         assert_eq!(info.author.as_deref(), Some("An Author"));
         assert_eq!(info.version.as_deref(), Some("1.2.3"));
-        assert_eq!(info.website.as_deref(), Some("https://example.org/mods/notes"));
+        assert_eq!(
+            info.website.as_deref(),
+            Some("https://example.org/mods/notes")
+        );
         let description = info.description.unwrap();
-        assert!(description.starts_with("Notes Mod\n\nRequirements:\nMorrowind & Tribunal"), "{description:?}");
+        assert!(
+            description.starts_with("Notes Mod\n\nRequirements:\nMorrowind & Tribunal"),
+            "{description:?}"
+        );
         assert!(description.ends_with("Known issues:\nNone."));
         // Fields we have no slot for are kept, not dropped.
-        assert!(info.other.iter().any(|f| f.name == "Id" && f.value == "12345"));
-        assert!(info.other.iter().any(|f| f.name == "Groups" && f.value == "Misc"));
+        assert!(info
+            .other
+            .iter()
+            .any(|f| f.name == "Id" && f.value == "12345"));
+        assert!(info
+            .other
+            .iter()
+            .any(|f| f.name == "Groups" && f.value == "Misc"));
     }
 
     #[test]
@@ -505,13 +547,19 @@ mod tests {
         let readme = get("README.txt");
         assert_eq!(readme.kind, DocumentKind::Text);
         let text = readme.text.as_deref().unwrap();
-        assert!(text.contains("Café patch for “Morrowind” – read this first."), "{text:?}");
+        assert!(
+            text.contains("Café patch for “Morrowind” – read this first."),
+            "{text:?}"
+        );
         assert!(!text.contains('\r') && !readme.truncated && readme.error.is_none());
 
         let install = get("Install.html");
         assert_eq!(install.kind, DocumentKind::Html);
         let text = install.text.as_deref().unwrap();
-        assert!(text.contains("Use Notes & friends.") && text.contains("- Two <2>"), "{text:?}");
+        assert!(
+            text.contains("Use Notes & friends.") && text.contains("- Two <2>"),
+            "{text:?}"
+        );
         assert!(!text.contains("hidden") && !text.contains('<') || text.contains("<2>"));
 
         let link = get("Link.url");

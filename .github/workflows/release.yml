@@ -1,7 +1,7 @@
 name: Release
 
-# Push a tag such as v0.1.0 to build installers for Linux and Windows
-# and attach them to a draft GitHub release.
+# Push a tag such as v0.1.0 to build installers for Linux and Windows and
+# attach them to a draft GitHub release. Review the draft, then publish it.
 on:
   push:
     tags: ["v*"]
@@ -10,18 +10,53 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.create.outputs.release_id }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check the tag matches the app versions
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          cargo_v=$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
+          tauri_v=$(jq -r .version ui/src-tauri/tauri.conf.json)
+          npm_v=$(jq -r .version ui/package.json)
+          echo "tag=$tag cargo=$cargo_v tauri=$tauri_v npm=$npm_v"
+          [ "$tag" = "$cargo_v" ] && [ "$tag" = "$tauri_v" ] && [ "$tag" = "$npm_v" ] || {
+            echo "::error::Tag $GITHUB_REF_NAME does not match the versions above"; exit 1; }
+
+      - name: Create the draft release
+        id: create
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Our intro first, then GitHub's generated list of changes.
+          generated=$(gh api -X POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+            -f tag_name="$GITHUB_REF_NAME" --jq .body)
+          { cat .github/release-intro.md; printf '%s\n' "$generated"; } > release-notes.md
+          gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
+            --title "Owl $GITHUB_REF_NAME" --notes-file release-notes.md
+          id=$(gh api "repos/$GITHUB_REPOSITORY/releases" --jq \
+            "map(select(.tag_name == \"$GITHUB_REF_NAME\" and .draft)) | first | .id")
+          echo "release_id=$id" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: create-release
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
             bundles: deb,rpm,appimage
+            cli_platform: linux-x86_64.tar.gz
           - os: windows-latest
             bundles: nsis
+            cli_platform: windows-x86_64.zip
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Linux build dependencies
         if: runner.os == 'Linux'
@@ -33,7 +68,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -48,25 +83,32 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: ui
+          releaseId: ${{ needs.create-release.outputs.release_id }}
           tagName: ${{ github.ref_name }}
-          releaseName: Owl ${{ github.ref_name }}
-          releaseDraft: true
           args: --bundles ${{ matrix.bundles }}
 
-      # The command-line tool ships separately from the desktop installers.
+      # The command-line tool ships on its own, next to the desktop installers.
+      # The name starts with "CLI" so it sorts ahead of the installers in the asset list.
       - name: Build the CLI
         run: cargo build --release -p owl
-
+      - name: Name the CLI archive
+        shell: bash
+        run: echo "CLI_ARCHIVE=CLI_Owl_${GITHUB_REF_NAME#v}_${{ matrix.cli_platform }}" >> "$GITHUB_ENV"
       - name: Package the CLI (Linux)
         if: runner.os == 'Linux'
-        run: tar -czf owl-${{ github.ref_name }}-linux-x86_64.tar.gz -C target/release owl
+        run: tar -czf "$CLI_ARCHIVE" -C target/release owl
       - name: Package the CLI (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: Compress-Archive -Path target/release/owl.exe -DestinationPath owl-${{ github.ref_name }}-windows-x86_64.zip
+        run: Compress-Archive -Path target/release/owl.exe -DestinationPath $env:CLI_ARCHIVE
 
       - name: Attach the CLI to the release
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${{ github.ref_name }}" owl-${{ github.ref_name }}-* --clobber
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary "@$CLI_ARCHIVE" \
+            "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/${{ needs.create-release.outputs.release_id }}/assets?name=$CLI_ARCHIVE"

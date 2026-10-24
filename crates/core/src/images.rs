@@ -116,8 +116,16 @@ fn base64(bytes: &[u8]) -> String {
             | u32::from(*chunk.get(2).unwrap_or(&0));
         out.push(ALPHABET[(n >> 18) as usize & 63] as char);
         out.push(ALPHABET[(n >> 12) as usize & 63] as char);
-        out.push(if chunk.len() > 1 { ALPHABET[(n >> 6) as usize & 63] as char } else { '=' });
-        out.push(if chunk.len() > 2 { ALPHABET[n as usize & 63] as char } else { '=' });
+        out.push(if chunk.len() > 1 {
+            ALPHABET[(n >> 6) as usize & 63] as char
+        } else {
+            '='
+        });
+        out.push(if chunk.len() > 2 {
+            ALPHABET[n as usize & 63] as char
+        } else {
+            '='
+        });
     }
     out
 }
@@ -148,9 +156,18 @@ mod tests {
     #[test]
     fn reads_a_picture_whatever_the_slashes_and_letter_case() {
         let dir = mod_with_picture();
-        for written in ["Screenshots/Header.PNG", "Screenshots\\header.png", "screenshots\\HEADER.png", "./Screenshots/header.png"] {
-            let uri = read_image(dir.path(), Path::new(written)).unwrap_or_else(|e| panic!("{written}: {e}"));
-            assert!(uri.starts_with("data:image/png;base64,iVBORw0KGgo"), "{uri}");
+        for written in [
+            "Screenshots/Header.PNG",
+            "Screenshots\\header.png",
+            "screenshots\\HEADER.png",
+            "./Screenshots/header.png",
+        ] {
+            let uri = read_image(dir.path(), Path::new(written))
+                .unwrap_or_else(|e| panic!("{written}: {e}"));
+            assert!(
+                uri.starts_with("data:image/png;base64,iVBORw0KGgo"),
+                "{uri}"
+            );
         }
     }
 
@@ -159,8 +176,13 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         fs::write(dir.path().join("a.png"), b"not a picture at all").unwrap();
         fs::write(dir.path().join("b.jpg"), PNG).unwrap();
-        assert_eq!(read_image(dir.path(), Path::new("a.png")), Err(ImageError::NotAnImage));
-        assert!(read_image(dir.path(), Path::new("b.jpg")).unwrap().starts_with("data:image/png"));
+        assert_eq!(
+            read_image(dir.path(), Path::new("a.png")),
+            Err(ImageError::NotAnImage)
+        );
+        assert!(read_image(dir.path(), Path::new("b.jpg"))
+            .unwrap()
+            .starts_with("data:image/png"));
     }
 
     #[test]
@@ -177,7 +199,10 @@ mod tests {
             ".",
         ] {
             let got = read_image(dir.path(), Path::new(bad));
-            assert!(matches!(got, Err(ImageError::Unsafe(_))), "{bad:?} gave {got:?}");
+            assert!(
+                matches!(got, Err(ImageError::Unsafe(_))),
+                "{bad:?} gave {got:?}"
+            );
         }
     }
 
@@ -187,20 +212,39 @@ mod tests {
         let dir = mod_with_picture();
         let outside = tempfile::tempdir().unwrap();
         fs::write(outside.path().join("secret.png"), PNG).unwrap();
-        std::os::unix::fs::symlink(outside.path().join("secret.png"), dir.path().join("link.png")).unwrap();
+        std::os::unix::fs::symlink(
+            outside.path().join("secret.png"),
+            dir.path().join("link.png"),
+        )
+        .unwrap();
         std::os::unix::fs::symlink(outside.path(), dir.path().join("linked-dir")).unwrap();
-        assert!(matches!(read_image(dir.path(), Path::new("link.png")), Err(ImageError::Unsafe(_))));
-        assert!(matches!(read_image(dir.path(), Path::new("linked-dir/secret.png")), Err(ImageError::Unsafe(_))));
+        assert!(matches!(
+            read_image(dir.path(), Path::new("link.png")),
+            Err(ImageError::Unsafe(_))
+        ));
+        assert!(matches!(
+            read_image(dir.path(), Path::new("linked-dir/secret.png")),
+            Err(ImageError::Unsafe(_))
+        ));
     }
 
     #[test]
     fn says_so_when_the_picture_is_missing_or_too_big() {
         let dir = mod_with_picture();
-        assert!(matches!(read_image(dir.path(), Path::new("nope.png")), Err(ImageError::NotFound(_))));
-        assert!(matches!(read_image(dir.path(), Path::new("Screenshots")), Err(ImageError::NotFound(_))));
+        assert!(matches!(
+            read_image(dir.path(), Path::new("nope.png")),
+            Err(ImageError::NotFound(_))
+        ));
+        assert!(matches!(
+            read_image(dir.path(), Path::new("Screenshots")),
+            Err(ImageError::NotFound(_))
+        ));
         let mut big = PNG.to_vec();
         big.resize(MAX_IMAGE_LEN as usize + 1, 0);
         fs::write(dir.path().join("big.png"), big).unwrap();
-        assert_eq!(read_image(dir.path(), Path::new("big.png")), Err(ImageError::TooLarge));
+        assert_eq!(
+            read_image(dir.path(), Path::new("big.png")),
+            Err(ImageError::TooLarge)
+        );
     }
 }

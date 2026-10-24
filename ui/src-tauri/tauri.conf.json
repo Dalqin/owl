@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "npm run build && cargo build --release -p owl",
+    "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
   },
   "app": {
@@ -39,23 +39,6 @@
       "appimage"
     ],
     "shortDescription": "Manage OpenMW mods and load order",
-    "category": "Game",
-    "linux": {
-      "deb": {
-        "files": {
-          "/usr/bin/owl": "../../target/release/owl"
-        }
-      },
-      "rpm": {
-        "files": {
-          "/usr/bin/owl": "../../target/release/owl"
-        }
-      },
-      "appimage": {
-        "files": {
-          "/usr/bin/owl": "../../target/release/owl"
-        }
-      }
-    }
+    "category": "Game"
   }
 }
