@@ -36,10 +36,13 @@ jobs:
           generated=$(gh api -X POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
             -f tag_name="$GITHUB_REF_NAME" --jq .body)
           { cat .github/release-intro.md; printf '%s\n' "$generated"; } > release-notes.md
-          gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
-            --title "Owl $GITHUB_REF_NAME" --notes-file release-notes.md
-          id=$(gh api "repos/$GITHUB_REPOSITORY/releases" --jq \
-            "map(select(.tag_name == \"$GITHUB_REF_NAME\" and .draft)) | first | .id")
+          # Create the draft through the API so its id comes straight from the response.
+          id=$(jq -n --arg tag "$GITHUB_REF_NAME" --arg name "Owl $GITHUB_REF_NAME" \
+              --rawfile body release-notes.md \
+              '{tag_name: $tag, name: $name, body: $body, draft: true}' |
+            gh api -X POST "repos/$GITHUB_REPOSITORY/releases" --input - --jq .id)
+          [[ "$id" =~ ^[0-9]+$ ]] || { echo "::error::Did not get a release id (got '$id')"; exit 1; }
+          echo "Created draft release $id for $GITHUB_REF_NAME"
           echo "release_id=$id" >> "$GITHUB_OUTPUT"
 
   build:
