@@ -132,7 +132,14 @@ mod tests {
             ("scan-fomod-question.json", json(&scan_of("fomod-question"))),
             (
                 "preview-fomod-question.json",
-                json(&preview(&scan_of("fomod-question"), "Question", vec![], vec![], vec![], Some(&[]))),
+                json(&preview(
+                    &scan_of("fomod-question"),
+                    "Question",
+                    vec![],
+                    vec![],
+                    vec![],
+                    Some(&[]),
+                )),
             ),
             (
                 "preview-fomod-question-answered.json",
@@ -275,10 +282,14 @@ mod tests {
         // A library of mods with one of them already on the list.
         {
             let alpha = fixtures.join("library").join("Alpha Mod");
-            let mut m = Manifest::from_scan("Alpha Mod", &scan(&alpha, &ScanOptions::default()).unwrap());
+            let mut m =
+                Manifest::from_scan("Alpha Mod", &scan(&alpha, &ScanOptions::default()).unwrap());
             m.choose_datapaths(vec![std::path::PathBuf::new()], vec![]);
             let view = crate::profile::build_view_with_sources(
-                &[LoadedMod { manifest: m, root: alpha }],
+                &[LoadedMod {
+                    manifest: m,
+                    root: alpha,
+                }],
                 "content=Morrowind.esm\n",
                 &[fixtures.join("library"), fixtures.join("no-such-library")],
                 &[fixtures.join("simple"), fixtures.join("no-such-mod")],
@@ -353,7 +364,8 @@ mod tests {
         ]);
         let (changed_plan, written_text) =
             crate::apply::plan(cfg_path, healthy_base, &good, &[]).unwrap();
-        let (unchanged_plan, _) = crate::apply::plan(cfg_path, &written_text, &good, &changed_plan.added).unwrap();
+        let (unchanged_plan, _) =
+            crate::apply::plan(cfg_path, &written_text, &good, &changed_plan.added).unwrap();
         let bad = loaded(vec![("Variant", "multi-variant", Some("10 Plugin"))]);
         let (blocked_plan, _) =
             crate::apply::plan(cfg_path, "content=Morrowind.esm\n", &bad, &[]).unwrap();

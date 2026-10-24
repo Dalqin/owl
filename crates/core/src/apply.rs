@@ -159,10 +159,11 @@ pub fn apply(
     if expected_fingerprint.is_some_and(|f| f != plan.fingerprint) {
         return Err(ApplyError::Changed);
     }
-    let out = cfg::write_with_backup(cfg_path, &compiled.text).map_err(|source| ApplyError::Io {
-        path: cfg_path.to_path_buf(),
-        source,
-    })?;
+    let out =
+        cfg::write_with_backup(cfg_path, &compiled.text).map_err(|source| ApplyError::Io {
+            path: cfg_path.to_path_buf(),
+            source,
+        })?;
     // Only the lines this run wrote are ours; recorded after the write so a
     // refused or failed apply leaves the old record in place.
     profile::set_applied(profile_path, &compiled.owned)?;
@@ -277,7 +278,11 @@ mod tests {
             BASE,
             "nothing written"
         );
-        assert!(apply(&cfg_path, &mods, &profile_path(&dir), None, true).unwrap().changed);
+        assert!(
+            apply(&cfg_path, &mods, &profile_path(&dir), None, true)
+                .unwrap()
+                .changed
+        );
     }
 
     #[test]
@@ -287,7 +292,14 @@ mod tests {
         let (reviewed, _) = plan(&cfg_path, BASE, &mods, &[]).unwrap();
 
         fs::write(&cfg_path, format!("{BASE}content=Added.By.Someone.Else\n")).unwrap();
-        let err = apply(&cfg_path, &mods, &profile_path(&dir), Some(&reviewed.fingerprint), false).unwrap_err();
+        let err = apply(
+            &cfg_path,
+            &mods,
+            &profile_path(&dir),
+            Some(&reviewed.fingerprint),
+            false,
+        )
+        .unwrap_err();
         assert!(matches!(err, ApplyError::Changed));
         assert!(
             !fs::read_to_string(&cfg_path).unwrap().contains("A.esp"),
@@ -297,9 +309,15 @@ mod tests {
         // Reviewing again works.
         let (fresh, _) = plan(&cfg_path, &read_cfg(&cfg_path).unwrap(), &mods, &[]).unwrap();
         assert!(
-            apply(&cfg_path, &mods, &profile_path(&dir), Some(&fresh.fingerprint), false)
-                .unwrap()
-                .changed
+            apply(
+                &cfg_path,
+                &mods,
+                &profile_path(&dir),
+                Some(&fresh.fingerprint),
+                false
+            )
+            .unwrap()
+            .changed
         );
     }
 
@@ -357,9 +375,13 @@ mod tests {
         apply(&cfg_path, &mods, &profile_path(&dir), None, false).unwrap();
 
         // The Launcher saves: it adds what the player ticked inside Owl's region.
-        let saved = fs::read_to_string(&cfg_path)
-            .unwrap()
-            .replace(cfg::BEGIN_MARKER, &format!("{}\ncontent=Tribunal.esm\ncontent=Bloodmoon.esm", cfg::BEGIN_MARKER));
+        let saved = fs::read_to_string(&cfg_path).unwrap().replace(
+            cfg::BEGIN_MARKER,
+            &format!(
+                "{}\ncontent=Tribunal.esm\ncontent=Bloodmoon.esm",
+                cfg::BEGIN_MARKER
+            ),
+        );
         fs::write(&cfg_path, &saved).unwrap();
 
         // Applying again moves them out of the fence (it wraps only Owl's
@@ -367,7 +389,10 @@ mod tests {
         let owned = profile::applied_lines(&profile_path(&dir));
         let (p, _) = plan(&cfg_path, &saved, &mods, &owned).unwrap();
         assert!(p.issues.is_empty(), "{p:?}");
-        assert_eq!(p.kept, vec!["content=Tribunal.esm", "content=Bloodmoon.esm"]);
+        assert_eq!(
+            p.kept,
+            vec!["content=Tribunal.esm", "content=Bloodmoon.esm"]
+        );
         let out = apply(&cfg_path, &mods, &profile_path(&dir), None, false).unwrap();
         assert!(out.changed);
         let fenced = cfg::owned_lines_in_region(&fs::read_to_string(&cfg_path).unwrap(), &owned);

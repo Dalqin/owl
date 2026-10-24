@@ -113,7 +113,8 @@ fn add_individual(path: String) -> CmdResult<bool> {
 /// Forgets a single mod's folder without adding it.
 #[tauri::command]
 fn remove_individual(path: String) -> CmdResult<()> {
-    profile::remove_individual_from_store(&store_dir()?, &PathBuf::from(path)).map_err(|e| e.to_string())
+    profile::remove_individual_from_store(&store_dir()?, &PathBuf::from(path))
+        .map_err(|e| e.to_string())
 }
 
 /// Like `preview_mod`, for a mod that is already on the list: starts from its

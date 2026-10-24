@@ -166,7 +166,10 @@ fn cmd_library(dir: &Path, json: bool) -> Result<ExitCode> {
         return Ok(ExitCode::SUCCESS);
     }
     match listing {
-        None => println!("{} is one mod. Use `owl scan` or `owl init` on it.", dir.display()),
+        None => println!(
+            "{} is one mod. Use `owl scan` or `owl init` on it.",
+            dir.display()
+        ),
         Some(lib) => {
             println!("{} holds several mods:\n", dir.display());
             for e in &lib.entries {
@@ -529,7 +532,13 @@ fn cmd_apply(a: &ProfileArgs, dry_run: bool, force: bool) -> Result<ExitCode> {
     }
 
     // The fingerprint ties the write to exactly what was just planned.
-    let outcome = apply::apply(&cfg_path, &mods, &profile_path, Some(&plan.fingerprint), force)?;
+    let outcome = apply::apply(
+        &cfg_path,
+        &mods,
+        &profile_path,
+        Some(&plan.fingerprint),
+        force,
+    )?;
     if !outcome.changed {
         println!("{} already up to date", cfg_path.display());
     } else {

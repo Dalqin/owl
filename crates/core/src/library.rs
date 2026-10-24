@@ -19,7 +19,9 @@ const LOOK_DEPTH: usize = 3;
 /// Most entries listed for one library.
 const MAX_ENTRIES: usize = 500;
 
-const ARCHIVE_EXTS: &[&str] = &["zip", "7z", "rar", "tar", "gz", "tgz", "xz", "bz2", "tbz2", "txz"];
+const ARCHIVE_EXTS: &[&str] = &[
+    "zip", "7z", "rar", "tar", "gz", "tgz", "xz", "bz2", "tbz2", "txz",
+];
 
 /// What a folder the player chose is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -85,7 +87,8 @@ fn holds_mod_files(dir: &Path) -> bool {
         }
         match e.file_type() {
             Ok(t) if t.is_dir() => {
-                is_engine_dir(&name) || (name == "fomod" && find_file_ci(&e.path(), "moduleconfig.xml").is_some())
+                is_engine_dir(&name)
+                    || (name == "fomod" && find_file_ci(&e.path(), "moduleconfig.xml").is_some())
             }
             Ok(t) if t.is_file() => Path::new(&name)
                 .extension()
@@ -110,7 +113,10 @@ fn looks_like_mod(dir: &Path, depth: usize) -> bool {
     read.flatten().any(|e| {
         let name = e.file_name().to_string_lossy().to_lowercase();
         // Symlinks are not followed, and asset folders are never entered.
-        e.file_type().is_ok_and(|t| t.is_dir()) && !hidden(&name) && !is_engine_dir(&name) && looks_like_mod(&e.path(), depth + 1)
+        e.file_type().is_ok_and(|t| t.is_dir())
+            && !hidden(&name)
+            && !is_engine_dir(&name)
+            && looks_like_mod(&e.path(), depth + 1)
     })
 }
 
@@ -201,7 +207,9 @@ mod tests {
     use super::*;
 
     fn fixture(name: &str) -> PathBuf {
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures").join(name)
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../fixtures")
+            .join(name)
     }
 
     fn lib(added: &[PathBuf]) -> Library {
@@ -238,7 +246,11 @@ mod tests {
     fn lists_mods_archives_and_other_folders_by_name_and_skips_the_rest() {
         let l = lib(&[]);
         assert!(l.exists && !l.truncated);
-        let got: Vec<(&str, EntryKind)> = l.entries.iter().map(|e| (e.name.as_str(), e.kind)).collect();
+        let got: Vec<(&str, EntryKind)> = l
+            .entries
+            .iter()
+            .map(|e| (e.name.as_str(), e.kind))
+            .collect();
         assert_eq!(
             got,
             vec![
@@ -257,16 +269,28 @@ mod tests {
     fn marks_the_mods_already_on_the_list() {
         let added = fixture("library").join("Beta Installer");
         let l = lib(&[added, PathBuf::from("/somewhere/else")]);
-        let flags: Vec<(&str, bool)> = l.entries.iter().map(|e| (e.name.as_str(), e.added)).collect();
+        let flags: Vec<(&str, bool)> = l
+            .entries
+            .iter()
+            .map(|e| (e.name.as_str(), e.added))
+            .collect();
         assert_eq!(
             flags,
-            vec![("Alpha Mod", false), ("Beta Installer", true), ("Docs", false), ("Packed.7z", false)]
+            vec![
+                ("Alpha Mod", false),
+                ("Beta Installer", true),
+                ("Docs", false),
+                ("Packed.7z", false)
+            ]
         );
     }
 
     #[test]
     fn a_trailing_slash_or_a_different_spelling_of_the_path_still_matches() {
-        let with_dots = fixture("library").join("Alpha Mod").join("..").join("Alpha Mod");
+        let with_dots = fixture("library")
+            .join("Alpha Mod")
+            .join("..")
+            .join("Alpha Mod");
         let l = lib(&[with_dots]);
         assert!(l.entries[0].added);
     }

@@ -509,8 +509,15 @@ pub(crate) mod tests {
             assert!(again.text.contains(&format!("{kept}\n")), "lost {kept}");
         }
         assert_eq!(again.owned, first.owned);
-        assert_eq!(again.kept, vec!["content=Tribunal.esm", "content=Bloodmoon.esm"]);
-        assert_eq!(managed_region(&again.text), first.owned, "the fence wraps only Owl's lines");
+        assert_eq!(
+            again.kept,
+            vec!["content=Tribunal.esm", "content=Bloodmoon.esm"]
+        );
+        assert_eq!(
+            managed_region(&again.text),
+            first.owned,
+            "the fence wraps only Owl's lines"
+        );
         let compiled_again = compile(&again.text, &[entry(&m, "/mods/a")], &first.owned).unwrap();
         assert_eq!(compiled_again.text, again.text, "settled after one apply");
     }
@@ -521,7 +528,10 @@ pub(crate) mod tests {
         let base = format!(
             "{BASE}{BEGIN_MARKER}\ncontent=Tribunal.esm\ndata=\"/mods/a/Core\"\ncontent=A.esp\ncontent=Late.omwaddon\n{END_MARKER}\n"
         );
-        let owned = vec!["data=\"/mods/a/Core\"".to_string(), "content=A.esp".to_string()];
+        let owned = vec![
+            "data=\"/mods/a/Core\"".to_string(),
+            "content=A.esp".to_string(),
+        ];
         let out = compile(&base, &[entry(&b, "/mods/b")], &owned).unwrap();
         assert_eq!(
             managed_region(&out.text),
@@ -640,7 +650,12 @@ pub(crate) mod tests {
             .collect();
         assert_eq!(
             content,
-            vec!["content=x1.esp", "content=y1.esp", "content=x2.esp", "content=y2.esp"]
+            vec![
+                "content=x1.esp",
+                "content=y1.esp",
+                "content=x2.esp",
+                "content=y2.esp"
+            ]
         );
     }
 

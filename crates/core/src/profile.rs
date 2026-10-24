@@ -382,7 +382,11 @@ pub fn build_view(mods: &[LoadedMod], base_cfg: &str) -> ProfileView {
 }
 
 /// [`build_view`], also reading each library folder to say what is in it.
-pub fn build_view_with_libraries(mods: &[LoadedMod], base_cfg: &str, libraries: &[PathBuf]) -> ProfileView {
+pub fn build_view_with_libraries(
+    mods: &[LoadedMod],
+    base_cfg: &str,
+    libraries: &[PathBuf],
+) -> ProfileView {
     build_view_with_sources(mods, base_cfg, libraries, &[])
 }
 
@@ -412,14 +416,18 @@ pub fn build_view_with_sources(
             })
             .collect(),
         check: validate::check(base_cfg, &entries),
-        libraries: libraries.iter().map(|l| library::read_library(l, &roots)).collect(),
+        libraries: libraries
+            .iter()
+            .map(|l| library::read_library(l, &roots))
+            .collect(),
         individuals: individuals
             .iter()
             .filter(|p| !roots.contains(p))
             .map(|p| IndividualMod {
-                name: p
-                    .file_name()
-                    .map_or_else(|| p.to_string_lossy().into_owned(), |n| n.to_string_lossy().into_owned()),
+                name: p.file_name().map_or_else(
+                    || p.to_string_lossy().into_owned(),
+                    |n| n.to_string_lossy().into_owned(),
+                ),
                 path: p.to_string_lossy().into_owned(),
                 exists: p.is_dir(),
             })
@@ -436,7 +444,12 @@ pub fn load_view(dir: &Path, base_cfg: &str) -> Result<ProfileView, ProfileError
         Vec::new()
     };
     let stored = load_store(dir)?;
-    Ok(build_view_with_sources(&mods, base_cfg, &stored.libraries, &stored.individuals))
+    Ok(build_view_with_sources(
+        &mods,
+        base_cfg,
+        &stored.libraries,
+        &stored.individuals,
+    ))
 }
 
 /// Remembers a folder of mods. Does nothing if it is already remembered.
@@ -474,7 +487,9 @@ pub fn add_individual_to_store(dir: &Path, folder: &Path) -> Result<bool, Profil
         source,
     })?;
     let mut profile = load_store(dir)?;
-    if profile.individuals.iter().any(|p| p == folder) || profile.mods.iter().any(|m| m.root == folder) {
+    if profile.individuals.iter().any(|p| p == folder)
+        || profile.mods.iter().any(|m| m.root == folder)
+    {
         return Ok(false);
     }
     profile.individuals.push(folder.to_path_buf());
@@ -525,13 +540,22 @@ mod tests {
         let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures");
         let mut m = Manifest::from_scan(
             "M",
-            &crate::scan::scan(&fixtures.join("simple"), &crate::scan::ScanOptions::default()).unwrap(),
+            &crate::scan::scan(
+                &fixtures.join("simple"),
+                &crate::scan::ScanOptions::default(),
+            )
+            .unwrap(),
         );
         m.decisions.enabled_plugins = vec!["Gone.esp".into()];
         let dir = tempfile::tempdir().unwrap();
         add_to_store(dir.path(), &m, &fixtures.join("simple")).unwrap();
         let issues = rescan_in_store(dir.path(), 0).unwrap();
-        assert_eq!(issues, vec![DecisionIssue::PluginMissing { name: "Gone.esp".into() }]);
+        assert_eq!(
+            issues,
+            vec![DecisionIssue::PluginMissing {
+                name: "Gone.esp".into()
+            }]
+        );
         assert!(matches!(
             rescan_in_store(dir.path(), 5),
             Err(ProfileError::BadIndex { index: 5, len: 1 })
@@ -543,12 +567,21 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let lib = Path::new("/mods/library");
         assert!(add_library_to_store(dir.path(), lib).unwrap());
-        assert!(!add_library_to_store(dir.path(), lib).unwrap(), "already there");
+        assert!(
+            !add_library_to_store(dir.path(), lib).unwrap(),
+            "already there"
+        );
         assert!(add_library_to_store(dir.path(), Path::new("/more")).unwrap());
-        assert_eq!(load_store(dir.path()).unwrap().libraries, vec![PathBuf::from("/mods/library"), PathBuf::from("/more")]);
+        assert_eq!(
+            load_store(dir.path()).unwrap().libraries,
+            vec![PathBuf::from("/mods/library"), PathBuf::from("/more")]
+        );
 
         remove_library_from_store(dir.path(), 0).unwrap();
-        assert_eq!(load_store(dir.path()).unwrap().libraries, vec![PathBuf::from("/more")]);
+        assert_eq!(
+            load_store(dir.path()).unwrap().libraries,
+            vec![PathBuf::from("/more")]
+        );
         assert!(matches!(
             remove_library_from_store(dir.path(), 3),
             Err(ProfileError::BadIndex { index: 3, len: 1 })
@@ -563,7 +596,11 @@ mod tests {
         let root = fixtures.join("library").join("Alpha Mod");
         let report = crate::scan::scan(&root, &crate::scan::ScanOptions::default()).unwrap();
         add_to_store(dir.path(), &Manifest::from_scan("Alpha", &report), &root).unwrap();
-        set_applied(&store_profile_path(dir.path()), &["content=Simple.esp".to_string()]).unwrap();
+        set_applied(
+            &store_profile_path(dir.path()),
+            &["content=Simple.esp".to_string()],
+        )
+        .unwrap();
 
         let p = load_store(dir.path()).unwrap();
         assert_eq!(p.libraries.len(), 1);
@@ -571,7 +608,11 @@ mod tests {
 
         // The view says which entries of the library are already on the list.
         let view = load_view(dir.path(), "").unwrap();
-        let added: Vec<(&str, bool)> = view.libraries[0].entries.iter().map(|e| (e.name.as_str(), e.added)).collect();
+        let added: Vec<(&str, bool)> = view.libraries[0]
+            .entries
+            .iter()
+            .map(|e| (e.name.as_str(), e.added))
+            .collect();
         assert_eq!(added[0], ("Alpha Mod", true));
         assert_eq!(added[1], ("Beta Installer", false));
     }
@@ -582,17 +623,27 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let root = fixtures.join("simple");
         assert!(add_individual_to_store(dir.path(), &root).unwrap());
-        assert!(!add_individual_to_store(dir.path(), &root).unwrap(), "already there");
+        assert!(
+            !add_individual_to_store(dir.path(), &root).unwrap(),
+            "already there"
+        );
         assert!(add_individual_to_store(dir.path(), Path::new("/gone/Other")).unwrap());
 
         let view = load_view(dir.path(), "").unwrap();
-        let listed: Vec<(&str, bool)> = view.individuals.iter().map(|i| (i.name.as_str(), i.exists)).collect();
+        let listed: Vec<(&str, bool)> = view
+            .individuals
+            .iter()
+            .map(|i| (i.name.as_str(), i.exists))
+            .collect();
         assert_eq!(listed, [("simple", true), ("Other", false)]);
 
         // Adding the mod takes it off the waiting list.
         let report = crate::scan::scan(&root, &crate::scan::ScanOptions::default()).unwrap();
         add_to_store(dir.path(), &Manifest::from_scan("Simple", &report), &root).unwrap();
-        assert!(!add_individual_to_store(dir.path(), &root).unwrap(), "already on the list");
+        assert!(
+            !add_individual_to_store(dir.path(), &root).unwrap(),
+            "already on the list"
+        );
         let view = load_view(dir.path(), "").unwrap();
         assert_eq!(view.individuals.len(), 1);
 
@@ -604,7 +655,10 @@ mod tests {
     fn profiles_written_before_libraries_still_load() {
         let mut v = serde_json::to_value(Profile::default()).unwrap();
         v.as_object_mut().unwrap().remove("libraries");
-        assert_eq!(serde_json::from_value::<Profile>(v).unwrap(), Profile::default());
+        assert_eq!(
+            serde_json::from_value::<Profile>(v).unwrap(),
+            Profile::default()
+        );
     }
 
     #[test]

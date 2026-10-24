@@ -1,5 +1,6 @@
 //! Checks a planned load order for problems before anything is written.
 
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 
 use schemars::JsonSchema;
@@ -80,9 +81,9 @@ impl ValidationIssue {
     fn mod_name(&self) -> Option<&str> {
         use ValidationIssue::*;
         match self {
-            Undecided { mod_name } | StaleDecision { mod_name, .. } | DatapathNotFound { mod_name, .. } => {
-                Some(mod_name)
-            }
+            Undecided { mod_name }
+            | StaleDecision { mod_name, .. }
+            | DatapathNotFound { mod_name, .. } => Some(mod_name),
             _ => None,
         }
     }
@@ -262,15 +263,19 @@ pub fn validate(base_cfg: &str, mods: &[ModEntry]) -> Vec<ValidationIssue> {
     for (i, entry) in order.iter().enumerate() {
         let name = &entry.plugin;
         let key = name.to_lowercase();
-        if first_at.contains_key(&key) {
-            if !reported_dupes.contains(&key) {
-                reported_dupes.push(key);
-                issues.push(ValidationIssue::DuplicatePlugin {
-                    plugin: name.clone(),
-                });
+        match first_at.entry(key) {
+            Entry::Occupied(seen) => {
+                let key = seen.key().clone();
+                if !reported_dupes.contains(&key) {
+                    reported_dupes.push(key);
+                    issues.push(ValidationIssue::DuplicatePlugin {
+                        plugin: name.clone(),
+                    });
+                }
             }
-        } else {
-            first_at.insert(key, i);
+            Entry::Vacant(slot) => {
+                slot.insert(i);
+            }
         }
     }
 
