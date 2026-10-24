@@ -2357,7 +2357,7 @@ dependencies = [
 
 [[package]]
 name = "owl"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "owl-core",
@@ -2366,7 +2366,7 @@ dependencies = [
 
 [[package]]
 name = "owl-app"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "owl-core",
  "serde",
@@ -2378,7 +2378,7 @@ dependencies = [
 
 [[package]]
 name = "owl-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "roxmltree",
  "schemars 1.2.3",
