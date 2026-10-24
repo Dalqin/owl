@@ -51,22 +51,21 @@ newest=$(printf '%s\n%s\n' "$current_cargo" "$version" | sort -V | tail -n1)
 [ "$newest" = "$version" ] || die "$version is older than the current version $current_cargo"
 
 echo "Release $version (currently $current_cargo), tagging $tag on $(git rev-parse --short HEAD)."
-echo
-echo "This will:"
-echo "  1. set the version to $version in Cargo.toml, ui/src-tauri/tauri.conf.json,"
-echo "     ui/package.json and the two lock files (cargo update --workspace; npm version)"
-echo "  2. git add ${files[*]}"
-echo "  3. git commit -m \"chore: release $version\""
-echo "  4. git tag -a $tag -m \"Owl $version\""
-echo "and then leave pushing to you:"
-echo "  git push origin main"
-echo "  git push origin $tag"
 if $dry_run; then
+  echo
+  echo "This would:"
+  echo "  1. set the version to $version in Cargo.toml, ui/src-tauri/tauri.conf.json,"
+  echo "     ui/package.json and the two lock files (cargo update --workspace; npm version)"
+  echo "  2. git add ${files[*]}"
+  echo "  3. git commit -m \"chore: release $version\""
+  echo "  4. git tag -a $tag -m \"Owl $version\""
+  echo "and then leave pushing to you:"
+  echo "  git push origin main"
+  echo "  git push origin $tag"
   echo
   echo "Dry run: nothing was changed."
   exit 0
 fi
-echo
 
 # If anything fails before the commit, put the files back the way they were.
 committed=false
@@ -92,16 +91,10 @@ cargo update --workspace --quiet
 [ "$(jq -r .version ui/src-tauri/tauri.conf.json)" = "$version" ] || die "tauri.conf.json was not updated"
 [ "$(jq -r .version ui/package-lock.json)" = "$version" ] || die "package-lock.json was not updated"
 
-run() {
-  printf '+'
-  printf ' %q' "$@"
-  echo
-  "$@"
-}
-run git add "${files[@]}"
-run git commit --quiet -m "chore: release $version"
+git add "${files[@]}"
+git commit --quiet -m "chore: release $version"
 committed=true
-run git tag -a "$tag" -m "Owl $version"
+git tag -a "$tag" -m "Owl $version"
 
 echo
 echo "Done. Committed 'chore: release $version' and tagged it $tag."
