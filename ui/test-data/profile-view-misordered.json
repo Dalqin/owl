@@ -1,0 +1,164 @@
+{
+  "mods": [
+    {
+      "manifest": {
+        "schema_version": 1,
+        "name": "Patch",
+        "version": null,
+        "source": null,
+        "derived": {
+          "datapath_candidates": [
+            {
+              "path": "",
+              "engine_dirs": [],
+              "plugins": [
+                {
+                  "name": "Patch.esp",
+                  "masters": [
+                    "Lib.esp"
+                  ],
+                  "error": null
+                }
+              ]
+            }
+          ],
+          "fomod": null,
+          "notes": {
+            "info": null,
+            "documents": []
+          }
+        },
+        "decisions": {
+          "datapaths": [
+            ""
+          ],
+          "enabled_plugins": [
+            "Patch.esp"
+          ],
+          "load_after": [],
+          "fomod_choices": []
+        }
+      },
+      "root": "/fixtures/simple",
+      "root_exists": true
+    },
+    {
+      "manifest": {
+        "schema_version": 1,
+        "name": "Lib",
+        "version": null,
+        "source": null,
+        "derived": {
+          "datapath_candidates": [
+            {
+              "path": "",
+              "engine_dirs": [],
+              "plugins": [
+                {
+                  "name": "Lib.esp",
+                  "masters": [
+                    "Patch.esp"
+                  ],
+                  "error": null
+                }
+              ]
+            }
+          ],
+          "fomod": null,
+          "notes": {
+            "info": null,
+            "documents": []
+          }
+        },
+        "decisions": {
+          "datapaths": [
+            ""
+          ],
+          "enabled_plugins": [
+            "Lib.esp"
+          ],
+          "load_after": [],
+          "fomod_choices": []
+        }
+      },
+      "root": "/fixtures/simple",
+      "root_exists": true
+    }
+  ],
+  "check": {
+    "issues": [
+      {
+        "kind": "master_after_plugin",
+        "plugin": "Patch.esp",
+        "master": "Lib.esp"
+      }
+    ],
+    "mods": [
+      {
+        "mod_name": "Patch",
+        "requirements": [
+          {
+            "kind": "master",
+            "name": "Lib.esp",
+            "status": "satisfied",
+            "needed_by": [
+              "Patch.esp"
+            ]
+          }
+        ],
+        "issues": [
+          {
+            "kind": "master_after_plugin",
+            "plugin": "Patch.esp",
+            "master": "Lib.esp"
+          }
+        ]
+      },
+      {
+        "mod_name": "Lib",
+        "requirements": [
+          {
+            "kind": "master",
+            "name": "Patch.esp",
+            "status": "satisfied",
+            "needed_by": [
+              "Lib.esp"
+            ]
+          }
+        ],
+        "issues": []
+      }
+    ],
+    "load_order": [
+      {
+        "plugin": "Morrowind.esm",
+        "source": {
+          "kind": "user_config"
+        },
+        "masters": []
+      },
+      {
+        "plugin": "Patch.esp",
+        "source": {
+          "kind": "mod",
+          "name": "Patch"
+        },
+        "masters": [
+          "Lib.esp"
+        ]
+      },
+      {
+        "plugin": "Lib.esp",
+        "source": {
+          "kind": "mod",
+          "name": "Lib"
+        },
+        "masters": [
+          "Patch.esp"
+        ]
+      }
+    ]
+  },
+  "libraries": [],
+  "individuals": []
+}

@@ -1,0 +1,128 @@
+{
+  "manifest": {
+    "schema_version": 1,
+    "name": "Question",
+    "version": null,
+    "source": null,
+    "derived": {
+      "datapath_candidates": [
+        {
+          "path": "Option A",
+          "engine_dirs": [
+            "Meshes"
+          ],
+          "plugins": [
+            {
+              "name": "A.esp",
+              "masters": [],
+              "error": "not a TES3 plugin (missing TES3 header record)"
+            }
+          ]
+        },
+        {
+          "path": "Option B",
+          "engine_dirs": [
+            "Meshes"
+          ],
+          "plugins": [
+            {
+              "name": "B.esp",
+              "masters": [],
+              "error": "not a TES3 plugin (missing TES3 header record)"
+            }
+          ]
+        }
+      ],
+      "fomod": {
+        "module_name": "Question FOMOD",
+        "base": "",
+        "module_image": "fomod/Banner.PNG",
+        "required_files": [],
+        "steps": [
+          {
+            "name": "Pick a variant",
+            "visible": null,
+            "groups": [
+              {
+                "name": "Variant",
+                "kind": "select_exactly_one",
+                "options": [
+                  {
+                    "name": "A",
+                    "description": "The first variant",
+                    "default_type": "optional",
+                    "type_patterns": [],
+                    "sets_flags": [],
+                    "files": [
+                      {
+                        "source": "Option A",
+                        "destination": "",
+                        "is_folder": true,
+                        "priority": 0
+                      }
+                    ],
+                    "image": "fomod/banner.png"
+                  },
+                  {
+                    "name": "B",
+                    "description": "The second variant\r\n\r\nUse this one if you also use the Example mod.\r\nIt avoids changing the same records.",
+                    "default_type": "optional",
+                    "type_patterns": [],
+                    "sets_flags": [],
+                    "files": [
+                      {
+                        "source": "Option B",
+                        "destination": "",
+                        "is_folder": true,
+                        "priority": 0
+                      }
+                    ],
+                    "image": null
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "conditional_installs": []
+      },
+      "notes": {
+        "info": null,
+        "documents": []
+      }
+    },
+    "decisions": {
+      "datapaths": [],
+      "enabled_plugins": [],
+      "load_after": [],
+      "fomod_choices": []
+    }
+  },
+  "fomod": {
+    "visible_steps": [
+      "Pick a variant"
+    ],
+    "selected": [],
+    "flags": {},
+    "datapaths": [],
+    "plugins": [],
+    "problems": [
+      {
+        "kind": "group_unresolved",
+        "step": "Pick a variant",
+        "group": "Variant",
+        "cause": "choice_needed",
+        "reason": "a choice is needed: A, B"
+      }
+    ]
+  },
+  "issues": [],
+  "requirements": [],
+  "unanswered": [
+    {
+      "step": "Pick a variant",
+      "group": "Variant"
+    }
+  ],
+  "changed": true
+}

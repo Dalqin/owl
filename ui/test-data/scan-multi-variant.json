@@ -1,0 +1,76 @@
+{
+  "datapath_candidates": [
+    {
+      "path": "00 Core",
+      "engine_dirs": [
+        "Meshes",
+        "Textures"
+      ],
+      "plugins": []
+    },
+    {
+      "path": "000 MANUAL INSTALL ONLY",
+      "engine_dirs": [
+        "Meshes"
+      ],
+      "plugins": [
+        {
+          "name": "Variant.ESP",
+          "masters": [
+            "Morrowind.esm",
+            "Tribunal.esm"
+          ],
+          "error": null
+        }
+      ]
+    },
+    {
+      "path": "10 Plugin",
+      "engine_dirs": [],
+      "plugins": [
+        {
+          "name": "Variant.ESP",
+          "masters": [
+            "Morrowind.esm",
+            "Tribunal.esm"
+          ],
+          "error": null
+        }
+      ]
+    },
+    {
+      "path": "20 Alt Plugin",
+      "engine_dirs": [],
+      "plugins": [
+        {
+          "name": "Alt.esp",
+          "masters": [],
+          "error": "not a TES3 plugin (missing TES3 header record)"
+        }
+      ]
+    }
+  ],
+  "fomod": null,
+  "notes": {
+    "info": null,
+    "documents": [
+      {
+        "path": "Docs/readme.txt",
+        "kind": "text",
+        "text": "placeholder\n",
+        "truncated": false,
+        "error": null
+      }
+    ]
+  },
+  "warnings": [
+    {
+      "kind": "multiple_candidates",
+      "count": 4
+    },
+    {
+      "kind": "manual_install_folder",
+      "path": "000 MANUAL INSTALL ONLY"
+    }
+  ]
+}

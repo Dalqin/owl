@@ -1,0 +1,77 @@
+{
+  "cfg_path": "/home/u/.config/openmw/openmw.cfg",
+  "issues": [],
+  "added": [],
+  "removed": [
+    "data=\"/fixtures/multi-variant/10 Plugin\"",
+    "content=Variant.ESP"
+  ],
+  "diff": [
+    {
+      "kind": "context",
+      "old_line": 1,
+      "new_line": 1,
+      "text": "content=Morrowind.esm"
+    },
+    {
+      "kind": "context",
+      "old_line": 2,
+      "new_line": 2,
+      "text": "content=Tribunal.esm"
+    },
+    {
+      "kind": "removed",
+      "old_line": 3,
+      "new_line": null,
+      "text": "# >>> owl managed: do not edit between these markers >>>"
+    },
+    {
+      "kind": "context",
+      "old_line": 4,
+      "new_line": 3,
+      "text": "content=Bloodmoon.esm"
+    },
+    {
+      "kind": "added",
+      "old_line": null,
+      "new_line": 4,
+      "text": "# >>> owl managed: do not edit between these markers >>>"
+    },
+    {
+      "kind": "context",
+      "old_line": 5,
+      "new_line": 5,
+      "text": "data=\"/fixtures/simple\""
+    },
+    {
+      "kind": "removed",
+      "old_line": 6,
+      "new_line": null,
+      "text": "data=\"/fixtures/multi-variant/10 Plugin\""
+    },
+    {
+      "kind": "context",
+      "old_line": 7,
+      "new_line": 6,
+      "text": "content=Simple.esp"
+    },
+    {
+      "kind": "removed",
+      "old_line": 8,
+      "new_line": null,
+      "text": "content=Variant.ESP"
+    },
+    {
+      "kind": "context",
+      "old_line": 9,
+      "new_line": 7,
+      "text": "# <<< owl managed <<<"
+    }
+  ],
+  "kept": [
+    "content=Bloodmoon.esm"
+  ],
+  "skipped_duplicates": [],
+  "changed": true,
+  "fingerprint": "dfc400615e838471"
+}

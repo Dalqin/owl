@@ -1,0 +1,199 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Resolution",
+  "description": "What a set of choices amounts to.",
+  "type": "object",
+  "properties": {
+    "datapaths": {
+      "description": "Data paths relative to the scan root, in order (later overrides earlier).",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "flags": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "plugins": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "problems": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/FomodProblem"
+      }
+    },
+    "selected": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/SelectedOption"
+      }
+    },
+    "visible_steps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "visible_steps",
+    "selected",
+    "flags",
+    "datapaths",
+    "plugins",
+    "problems"
+  ],
+  "$defs": {
+    "FomodProblem": {
+      "oneOf": [
+        {
+          "description": "A choice does not match any option in a visible step, or is not allowed.",
+          "type": "object",
+          "properties": {
+            "choice": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "invalid_choice"
+            },
+            "reason": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "choice",
+            "reason"
+          ]
+        },
+        {
+          "description": "The player still has to decide, or decided something inconsistent.",
+          "type": "object",
+          "properties": {
+            "cause": {
+              "$ref": "#/$defs/Unresolved"
+            },
+            "group": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "group_unresolved"
+            },
+            "reason": {
+              "description": "In words, for showing as it is.",
+              "type": "string"
+            },
+            "step": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "step",
+            "group",
+            "cause",
+            "reason"
+          ]
+        },
+        {
+          "description": "A condition we cannot evaluate was treated as false.",
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "unsupported_condition"
+            }
+          },
+          "required": [
+            "kind",
+            "description"
+          ]
+        },
+        {
+          "description": "An install cannot be expressed as an OpenMW data path.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "not_representable"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "source",
+            "reason"
+          ]
+        },
+        {
+          "description": "An install points at something the scan did not find.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "source_not_found"
+            },
+            "source": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "source"
+          ]
+        }
+      ]
+    },
+    "SelectedOption": {
+      "type": "object",
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "option": {
+          "type": "string"
+        },
+        "step": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "step",
+        "group",
+        "option"
+      ]
+    },
+    "Unresolved": {
+      "description": "Why a group of options is not settled.",
+      "oneOf": [
+        {
+          "description": "Nothing is chosen and the installer gives no default: the player must answer.",
+          "type": "string",
+          "const": "choice_needed"
+        },
+        {
+          "description": "More options are chosen than the group allows.",
+          "type": "string",
+          "const": "too_many_chosen"
+        }
+      ]
+    }
+  }
+}

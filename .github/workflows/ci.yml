@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev librsvg2-dev libayatana-appindicator3-dev patchelf
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: UI tests and build
+        working-directory: ui
+        run: |
+          npm ci
+          npm test
+          npm run build
+
+      # The app crate embeds ui/dist, so this runs after the UI build.
+      - name: Rust tests
+        run: cargo test --workspace
+
+      # Not blocking yet: the tree has existing fmt and clippy findings to clear first.
+      - name: Format
+        continue-on-error: true
+        run: cargo fmt --check
+      - name: Clippy
+        continue-on-error: true
+        run: cargo clippy --workspace --all-targets -- -D warnings

@@ -1,0 +1,94 @@
+{
+  "manifest": {
+    "schema_version": 1,
+    "name": "Notes",
+    "version": null,
+    "source": null,
+    "derived": {
+      "datapath_candidates": [
+        {
+          "path": "",
+          "engine_dirs": [
+            "Meshes"
+          ],
+          "plugins": [
+            {
+              "name": "Notes.esp",
+              "masters": [
+                "Morrowind.esm"
+              ],
+              "error": null
+            }
+          ]
+        }
+      ],
+      "fomod": null,
+      "notes": {
+        "info": {
+          "name": "Notes Mod",
+          "author": "An Author",
+          "version": "1.2.3",
+          "website": "https://example.org/mods/notes",
+          "description": "Notes Mod\n\nRequirements:\nMorrowind & Tribunal\n\nKnown issues:\nNone.",
+          "other": [
+            {
+              "name": "Groups",
+              "value": "Misc"
+            },
+            {
+              "name": "Id",
+              "value": "12345"
+            }
+          ]
+        },
+        "documents": [
+          {
+            "path": "Link.url",
+            "kind": "link",
+            "text": "https://example.org/mods/notes",
+            "truncated": false,
+            "error": null
+          },
+          {
+            "path": "README.txt",
+            "kind": "text",
+            "text": "Notes Mod\n\nCafé patch for “Morrowind” – read this first.\nInstall: copy the folder, then enable Notes.esp.\n",
+            "truncated": false,
+            "error": null
+          },
+          {
+            "path": "Docs/Install.html",
+            "kind": "html",
+            "text": "Install\n\nInstalling\n\nUse Notes & friends.\n\n- One\n- Two <2>",
+            "truncated": false,
+            "error": null
+          }
+        ]
+      }
+    },
+    "decisions": {
+      "datapaths": [
+        ""
+      ],
+      "enabled_plugins": [
+        "Notes.esp"
+      ],
+      "load_after": [],
+      "fomod_choices": []
+    }
+  },
+  "fomod": null,
+  "issues": [],
+  "requirements": [
+    {
+      "kind": "master",
+      "name": "Morrowind.esm",
+      "status": "satisfied",
+      "needed_by": [
+        "Notes.esp"
+      ]
+    }
+  ],
+  "unanswered": [],
+  "changed": true
+}

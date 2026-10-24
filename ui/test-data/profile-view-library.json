@@ -1,0 +1,138 @@
+{
+  "mods": [
+    {
+      "manifest": {
+        "schema_version": 1,
+        "name": "Alpha Mod",
+        "version": null,
+        "source": null,
+        "derived": {
+          "datapath_candidates": [
+            {
+              "path": "",
+              "engine_dirs": [
+                "Meshes",
+                "Textures"
+              ],
+              "plugins": [
+                {
+                  "name": "Simple.esp",
+                  "masters": [
+                    "Morrowind.esm"
+                  ],
+                  "error": null
+                }
+              ]
+            }
+          ],
+          "fomod": null,
+          "notes": {
+            "info": null,
+            "documents": []
+          }
+        },
+        "decisions": {
+          "datapaths": [
+            ""
+          ],
+          "enabled_plugins": [
+            "Simple.esp"
+          ],
+          "load_after": [],
+          "fomod_choices": []
+        }
+      },
+      "root": "/fixtures/library/Alpha Mod",
+      "root_exists": true
+    }
+  ],
+  "check": {
+    "issues": [],
+    "mods": [
+      {
+        "mod_name": "Alpha Mod",
+        "requirements": [
+          {
+            "kind": "master",
+            "name": "Morrowind.esm",
+            "status": "satisfied",
+            "needed_by": [
+              "Simple.esp"
+            ]
+          }
+        ],
+        "issues": []
+      }
+    ],
+    "load_order": [
+      {
+        "plugin": "Morrowind.esm",
+        "source": {
+          "kind": "user_config"
+        },
+        "masters": []
+      },
+      {
+        "plugin": "Simple.esp",
+        "source": {
+          "kind": "mod",
+          "name": "Alpha Mod"
+        },
+        "masters": [
+          "Morrowind.esm"
+        ]
+      }
+    ]
+  },
+  "libraries": [
+    {
+      "path": "/fixtures/library",
+      "exists": true,
+      "entries": [
+        {
+          "name": "Alpha Mod",
+          "path": "/fixtures/library/Alpha Mod",
+          "kind": "mod",
+          "added": true
+        },
+        {
+          "name": "Beta Installer",
+          "path": "/fixtures/library/Beta Installer",
+          "kind": "mod",
+          "added": false
+        },
+        {
+          "name": "Docs",
+          "path": "/fixtures/library/Docs",
+          "kind": "other",
+          "added": false
+        },
+        {
+          "name": "Packed.7z",
+          "path": "/fixtures/library/Packed.7z",
+          "kind": "archive",
+          "added": false
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "path": "/fixtures/no-such-library",
+      "exists": false,
+      "entries": [],
+      "truncated": false
+    }
+  ],
+  "individuals": [
+    {
+      "name": "simple",
+      "path": "/fixtures/simple",
+      "exists": true
+    },
+    {
+      "name": "no-such-mod",
+      "path": "/fixtures/no-such-mod",
+      "exists": false
+    }
+  ]
+}

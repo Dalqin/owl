@@ -1,0 +1,65 @@
+{
+  "cfg_path": "/home/u/.config/openmw/openmw.cfg",
+  "issues": [],
+  "added": [
+    "data=\"/fixtures/simple\"",
+    "data=\"/fixtures/multi-variant/10 Plugin\"",
+    "content=Simple.esp",
+    "content=Variant.ESP"
+  ],
+  "removed": [],
+  "diff": [
+    {
+      "kind": "context",
+      "old_line": 1,
+      "new_line": 1,
+      "text": "content=Morrowind.esm"
+    },
+    {
+      "kind": "context",
+      "old_line": 2,
+      "new_line": 2,
+      "text": "content=Tribunal.esm"
+    },
+    {
+      "kind": "added",
+      "old_line": null,
+      "new_line": 3,
+      "text": "# >>> owl managed: do not edit between these markers >>>"
+    },
+    {
+      "kind": "added",
+      "old_line": null,
+      "new_line": 4,
+      "text": "data=\"/fixtures/simple\""
+    },
+    {
+      "kind": "added",
+      "old_line": null,
+      "new_line": 5,
+      "text": "data=\"/fixtures/multi-variant/10 Plugin\""
+    },
+    {
+      "kind": "added",
+      "old_line": null,
+      "new_line": 6,
+      "text": "content=Simple.esp"
+    },
+    {
+      "kind": "added",
+      "old_line": null,
+      "new_line": 7,
+      "text": "content=Variant.ESP"
+    },
+    {
+      "kind": "added",
+      "old_line": null,
+      "new_line": 8,
+      "text": "# <<< owl managed <<<"
+    }
+  ],
+  "kept": [],
+  "skipped_duplicates": [],
+  "changed": true,
+  "fingerprint": "4badd51ac3267486"
+}

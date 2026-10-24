@@ -1,0 +1,355 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CheckReport",
+  "description": "Everything a front end shows for \"is this setup OK, and what does each mod need\".",
+  "type": "object",
+  "properties": {
+    "issues": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ValidationIssue"
+      }
+    },
+    "load_order": {
+      "description": "Every plugin in the order it will load.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/LoadOrderEntry"
+      }
+    },
+    "mods": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ModRequirements"
+      }
+    }
+  },
+  "required": [
+    "issues",
+    "mods",
+    "load_order"
+  ],
+  "$defs": {
+    "DecisionIssue": {
+      "oneOf": [
+        {
+          "description": "A chosen data path is no longer among the scanned candidates.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "datapath_missing"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ]
+        },
+        {
+          "description": "An enabled plugin is not present in any chosen data path.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "plugin_missing"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "name"
+          ]
+        }
+      ]
+    },
+    "LoadOrderEntry": {
+      "description": "One plugin in the order OpenMW will load it.",
+      "type": "object",
+      "properties": {
+        "masters": {
+          "description": "Masters from the plugin's header; empty if unknown or unreadable.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "plugin": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/LoadSource"
+        }
+      },
+      "required": [
+        "plugin",
+        "source",
+        "masters"
+      ]
+    },
+    "LoadSource": {
+      "description": "Who put a plugin into the load order.",
+      "oneOf": [
+        {
+          "description": "Already listed in the player's own `openmw.cfg`.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "user_config"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "mod"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "name"
+          ]
+        }
+      ]
+    },
+    "ModRequirements": {
+      "description": "What one mod needs, with each need's status.",
+      "type": "object",
+      "properties": {
+        "issues": {
+          "description": "The problems from the whole check that concern this mod.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ValidationIssue"
+          }
+        },
+        "mod_name": {
+          "type": "string"
+        },
+        "requirements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Requirement"
+          }
+        }
+      },
+      "required": [
+        "mod_name",
+        "requirements",
+        "issues"
+      ]
+    },
+    "Requirement": {
+      "description": "One line of \"A mod needs these things\".",
+      "type": "object",
+      "properties": {
+        "needed_by": {
+          "description": "Enabled plugins that need it.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "status": {
+          "$ref": "#/$defs/RequirementStatus"
+        }
+      },
+      "oneOf": [
+        {
+          "description": "A master plugin the mod's plugins depend on.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "master"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "name"
+          ]
+        }
+      ],
+      "required": [
+        "status",
+        "needed_by"
+      ]
+    },
+    "RequirementStatus": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "satisfied",
+            "missing"
+          ]
+        },
+        {
+          "description": "The environment could not say (e.g. installed plugins not known).",
+          "type": "string",
+          "const": "unknown"
+        }
+      ]
+    },
+    "ValidationIssue": {
+      "oneOf": [
+        {
+          "description": "The mod has no chosen data path yet; someone must decide.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "undecided"
+            },
+            "mod_name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "mod_name"
+          ]
+        },
+        {
+          "description": "A decision no longer matches the scanned facts.",
+          "type": "object",
+          "properties": {
+            "issue": {
+              "$ref": "#/$defs/DecisionIssue"
+            },
+            "kind": {
+              "type": "string",
+              "const": "stale_decision"
+            },
+            "mod_name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "mod_name",
+            "issue"
+          ]
+        },
+        {
+          "description": "A chosen data path does not exist on disk.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "datapath_not_found"
+            },
+            "mod_name": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "mod_name",
+            "path"
+          ]
+        },
+        {
+          "description": "A plugin's master is not loaded anywhere.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "missing_master"
+            },
+            "master": {
+              "type": "string"
+            },
+            "plugin": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "plugin",
+            "master"
+          ]
+        },
+        {
+          "description": "A plugin's master is loaded, but after the plugin.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "master_after_plugin"
+            },
+            "master": {
+              "type": "string"
+            },
+            "plugin": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "plugin",
+            "master"
+          ]
+        },
+        {
+          "description": "The same plugin is enabled more than once (names compare case-insensitively).",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "duplicate_plugin"
+            },
+            "plugin": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "plugin"
+          ]
+        },
+        {
+          "description": "A plugin's header could not be read, so its masters are unchecked.",
+          "type": "object",
+          "properties": {
+            "error": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "unreadable_plugin"
+            },
+            "plugin": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "plugin",
+            "error"
+          ]
+        }
+      ]
+    }
+  }
+}

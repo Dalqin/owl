@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Owl
+Comment=Manage OpenMW mods and load order
+Exec=owl-app
+Icon=app.owl.openmw
+Categories=Game;Utility;
+Terminal=false

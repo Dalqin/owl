@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OrderFix",
+  "type": "object",
+  "properties": {
+    "changed": {
+      "description": "False when the order is already fine, or cannot be fixed (see `cyclic_mods`).",
+      "type": "boolean"
+    },
+    "cyclic_mods": {
+      "description": "Mods that need each other in a loop, so no whole-mod order works. Empty when solvable.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "moves": {
+      "description": "Only the mods whose position changes.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ModMove"
+      }
+    },
+    "order": {
+      "description": "Mod names in the order they would have afterwards.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "plugin_reorders": {
+      "description": "Mods whose plugins would be reordered inside the mod.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/PluginReorder"
+      }
+    }
+  },
+  "required": [
+    "changed",
+    "order",
+    "moves",
+    "plugin_reorders",
+    "cyclic_mods"
+  ],
+  "$defs": {
+    "ModMove": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "description": "Position before and after, counting from 0.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string"
+        },
+        "to": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "name",
+        "from",
+        "to"
+      ]
+    },
+    "PluginReorder": {
+      "type": "object",
+      "properties": {
+        "after": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "before": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mod_name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "mod_name",
+        "before",
+        "after"
+      ]
+    }
+  }
+}

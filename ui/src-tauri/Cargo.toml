@@ -1,0 +1,29 @@
+[package]
+name = "owl-app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Desktop app for Owl (Tauri shell around owl-core)"
+
+[lib]
+name = "owl_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+owl-core = { path = "../../crates/core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = { version = "2", default-features = false }
+
+# Which folder picker Linux uses (Windows and macOS always use the system's own).
+# Pick exactly one:
+#   portal-chooser  the desktop's own dialog, via the XDG Desktop Portal (default)
+#   gtk-chooser     a GTK3 dialog drawn by the app; for systems with no portal
+[features]
+default = ["portal-chooser"]
+portal-chooser = ["tauri-plugin-dialog/xdg-portal"]
+gtk-chooser = ["tauri-plugin-dialog/gtk3"]

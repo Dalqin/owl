@@ -1,0 +1,57 @@
+{
+  "manifest": {
+    "schema_version": 1,
+    "name": "Simple",
+    "version": null,
+    "source": null,
+    "derived": {
+      "datapath_candidates": [
+        {
+          "path": "",
+          "engine_dirs": [
+            "Meshes",
+            "Textures"
+          ],
+          "plugins": [
+            {
+              "name": "Simple.esp",
+              "masters": [
+                "Morrowind.esm"
+              ],
+              "error": null
+            }
+          ]
+        }
+      ],
+      "fomod": null,
+      "notes": {
+        "info": null,
+        "documents": []
+      }
+    },
+    "decisions": {
+      "datapaths": [
+        ""
+      ],
+      "enabled_plugins": [
+        "Simple.esp"
+      ],
+      "load_after": [],
+      "fomod_choices": []
+    }
+  },
+  "fomod": null,
+  "issues": [],
+  "requirements": [
+    {
+      "kind": "master",
+      "name": "Morrowind.esm",
+      "status": "satisfied",
+      "needed_by": [
+        "Simple.esp"
+      ]
+    }
+  ],
+  "unanswered": [],
+  "changed": true
+}

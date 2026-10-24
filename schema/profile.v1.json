@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Profile",
+  "type": "object",
+  "properties": {
+    "applied": {
+      "description": "The `openmw.cfg` lines Owl wrote last time it applied this profile.\nOther programs (OpenMW's Launcher) also write between Owl's markers;\nthis is how Owl tells its own lines from theirs.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "individuals": {
+      "description": "Folders of single mods the player picked but has not added yet, so they\ncan be read and added later. A mod leaves this list when it is added.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "libraries": {
+      "description": "Folders that hold many mods, kept so their mods can be worked through\nacross sessions.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "mods": {
+      "description": "In load order: earlier entries load first.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ProfileMod"
+      }
+    },
+    "schema_version": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "schema_version",
+    "mods"
+  ],
+  "$defs": {
+    "ProfileMod": {
+      "type": "object",
+      "properties": {
+        "manifest": {
+          "description": "Path to the manifest JSON. Relative paths resolve against the profile file's folder.",
+          "type": "string"
+        },
+        "root": {
+          "description": "Folder containing the mod's files. Relative paths resolve the same way.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "manifest",
+        "root"
+      ]
+    }
+  }
+}

@@ -1,0 +1,42 @@
+# Local Flatpak build of Owl from prebuilt release binaries:
+#   cargo build --release -p owl
+#   npm --prefix ui run tauri build -- --no-bundle
+#   ./build.sh
+# Not suitable for Flathub as is: Flathub builds from source, offline.
+app-id: app.owl.openmw
+runtime: org.gnome.Platform
+runtime-version: '50'
+sdk: org.gnome.Sdk
+command: owl-app
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  # The real paths are visible inside the sandbox, so Owl writes them to
+  # openmw.cfg as they are and OpenMW (outside the sandbox) can use them.
+  - --filesystem=xdg-config/openmw
+  # OpenMW installed as a Flatpak keeps its config here instead.
+  - --filesystem=~/.var/app/org.openmw.OpenMW/config/openmw
+  # The recommended place for mods; Owl points new users here.
+  - --filesystem=~/Games/OpenMW-Mods:create
+  # Mod folders elsewhere need a grant from the player:
+  #   flatpak override --user --filesystem=/path/to/mods app.owl.openmw
+modules:
+  - name: Owl
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 owl-app /app/bin/owl-app
+      - install -Dm755 owl /app/bin/owl
+      - install -Dm644 app.owl.openmw.desktop /app/share/applications/app.owl.openmw.desktop
+      - install -Dm644 icon.png /app/share/icons/hicolor/128x128/apps/app.owl.openmw.png
+    sources:
+      - type: file
+        path: ../../target/release/owl-app
+      - type: file
+        path: ../../target/release/owl
+      - type: file
+        path: app.owl.openmw.desktop
+      - type: file
+        path: ../../ui/src-tauri/icons/128x128.png
+        dest-filename: icon.png

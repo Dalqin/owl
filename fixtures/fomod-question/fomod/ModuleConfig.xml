@@ -1,0 +1,25 @@
+<config>
+  <moduleName>Question FOMOD</moduleName>
+  <moduleImage path="fomod\Banner.PNG" />
+  <installSteps order="Explicit">
+    <installStep name="Pick a variant">
+      <optionalFileGroups order="Explicit">
+        <group name="Variant" type="SelectExactlyOne">
+          <plugins order="Explicit">
+            <plugin name="A">
+              <description>The first variant</description>
+              <image path="fomod\banner.png" />
+              <files><folder source="Option A" destination="" priority="0"/></files>
+              <typeDescriptor><type name="Optional"/></typeDescriptor>
+            </plugin>
+            <plugin name="B">
+              <description>The second variant&#13;&#10;&#13;&#10;Use this one if you also use the Example mod.&#13;&#10;It avoids changing the same records.</description>
+              <files><folder source="Option B" destination="" priority="0"/></files>
+              <typeDescriptor><type name="Optional"/></typeDescriptor>
+            </plugin>
+          </plugins>
+        </group>
+      </optionalFileGroups>
+    </installStep>
+  </installSteps>
+</config>

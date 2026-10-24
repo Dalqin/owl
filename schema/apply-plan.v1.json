@@ -1,0 +1,312 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ApplyPlan",
+  "description": "What applying would do. Safe to show; nothing has been written.",
+  "type": "object",
+  "properties": {
+    "added": {
+      "description": "Lines that will appear in Owl's part of the file.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cfg_path": {
+      "type": "string"
+    },
+    "changed": {
+      "description": "False when the file is already exactly as it would be written.",
+      "type": "boolean"
+    },
+    "diff": {
+      "description": "The whole change line by line, with a few unchanged lines around it and\neach line's number in the current file and in the one that would be written.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/DiffLine"
+      }
+    },
+    "fingerprint": {
+      "description": "Identifies the exact file this plan would write; pass it to [`apply`].",
+      "type": "string"
+    },
+    "issues": {
+      "description": "Problems with the setup. Applying is refused while any exist, unless forced.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ValidationIssue"
+      }
+    },
+    "kept": {
+      "description": "Lines inside Owl's section that Owl did not write (OpenMW's Launcher puts\nthe plugins a player ticks there). They stay exactly where they are.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "removed": {
+      "description": "Lines that will disappear from Owl's part of the file.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "skipped_duplicates": {
+      "description": "Entries the player already has in their own settings, which Owl leaves alone.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "cfg_path",
+    "issues",
+    "added",
+    "removed",
+    "diff",
+    "kept",
+    "skipped_duplicates",
+    "changed",
+    "fingerprint"
+  ],
+  "$defs": {
+    "DecisionIssue": {
+      "oneOf": [
+        {
+          "description": "A chosen data path is no longer among the scanned candidates.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "datapath_missing"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ]
+        },
+        {
+          "description": "An enabled plugin is not present in any chosen data path.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "plugin_missing"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "name"
+          ]
+        }
+      ]
+    },
+    "DiffKind": {
+      "oneOf": [
+        {
+          "description": "In both files.",
+          "type": "string",
+          "const": "context"
+        },
+        {
+          "description": "Only in the new file.",
+          "type": "string",
+          "const": "added"
+        },
+        {
+          "description": "Only in the old file.",
+          "type": "string",
+          "const": "removed"
+        },
+        {
+          "description": "Unchanged lines left out between two groups of changes. Carries no text.",
+          "type": "string",
+          "const": "gap"
+        }
+      ]
+    },
+    "DiffLine": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/DiffKind"
+        },
+        "new_line": {
+          "description": "1-based line number in the file as it would be written; none for removed lines and gaps.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "old_line": {
+          "description": "1-based line number in the current file; none for added lines and gaps.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "text"
+      ]
+    },
+    "ValidationIssue": {
+      "oneOf": [
+        {
+          "description": "The mod has no chosen data path yet; someone must decide.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "undecided"
+            },
+            "mod_name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "mod_name"
+          ]
+        },
+        {
+          "description": "A decision no longer matches the scanned facts.",
+          "type": "object",
+          "properties": {
+            "issue": {
+              "$ref": "#/$defs/DecisionIssue"
+            },
+            "kind": {
+              "type": "string",
+              "const": "stale_decision"
+            },
+            "mod_name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "mod_name",
+            "issue"
+          ]
+        },
+        {
+          "description": "A chosen data path does not exist on disk.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "datapath_not_found"
+            },
+            "mod_name": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "mod_name",
+            "path"
+          ]
+        },
+        {
+          "description": "A plugin's master is not loaded anywhere.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "missing_master"
+            },
+            "master": {
+              "type": "string"
+            },
+            "plugin": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "plugin",
+            "master"
+          ]
+        },
+        {
+          "description": "A plugin's master is loaded, but after the plugin.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "master_after_plugin"
+            },
+            "master": {
+              "type": "string"
+            },
+            "plugin": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "plugin",
+            "master"
+          ]
+        },
+        {
+          "description": "The same plugin is enabled more than once (names compare case-insensitively).",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "duplicate_plugin"
+            },
+            "plugin": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "plugin"
+          ]
+        },
+        {
+          "description": "A plugin's header could not be read, so its masters are unchecked.",
+          "type": "object",
+          "properties": {
+            "error": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "unreadable_plugin"
+            },
+            "plugin": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "plugin",
+            "error"
+          ]
+        }
+      ]
+    }
+  }
+}

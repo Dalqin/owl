@@ -1,0 +1,678 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ScanReport",
+  "description": "Everything the scanner derived from a mod directory. Facts only; human\ndecisions live in the manifest, not here.",
+  "type": "object",
+  "properties": {
+    "datapath_candidates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/DatapathCandidate"
+      }
+    },
+    "fomod": {
+      "description": "The first FOMOD installer found, parsed. Others are only warned about.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FomodInfo"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "notes": {
+      "description": "What the author left for the people installing the mod (readmes, `info.xml`).",
+      "$ref": "#/$defs/ModNotes",
+      "default": {
+        "documents": [],
+        "info": null
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Warning"
+      }
+    }
+  },
+  "required": [
+    "datapath_candidates",
+    "warnings"
+  ],
+  "$defs": {
+    "Condition": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "all": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Condition"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "and"
+            }
+          },
+          "required": [
+            "kind",
+            "all"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "any": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Condition"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "or"
+            }
+          },
+          "required": [
+            "kind",
+            "any"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "flag": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "flag"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "flag",
+            "value"
+          ]
+        },
+        {
+          "description": "A condition we do not evaluate (plugin present, game version, ...).",
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "unsupported"
+            }
+          },
+          "required": [
+            "kind",
+            "description"
+          ]
+        }
+      ]
+    },
+    "ConditionalInstall": {
+      "type": "object",
+      "properties": {
+        "condition": {
+          "$ref": "#/$defs/Condition"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FileInstall"
+          }
+        }
+      },
+      "required": [
+        "condition",
+        "files"
+      ]
+    },
+    "DatapathCandidate": {
+      "description": "A folder that could be passed to OpenMW as a `data=` path.",
+      "type": "object",
+      "properties": {
+        "engine_dirs": {
+          "description": "Engine directories found directly inside (original casing).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "path": {
+          "description": "Path relative to the scanned root; empty means the root itself.",
+          "type": "string"
+        },
+        "plugins": {
+          "description": "Plugin files found directly inside.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginInfo"
+          }
+        }
+      },
+      "required": [
+        "path",
+        "engine_dirs",
+        "plugins"
+      ]
+    },
+    "DocumentKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "text",
+            "markdown",
+            "html"
+          ]
+        },
+        {
+          "description": "An internet shortcut; `text` is its address.",
+          "type": "string",
+          "const": "link"
+        },
+        {
+          "description": "Something the author left that is not shown as text (PDF, Word, RTF).",
+          "type": "string",
+          "const": "other"
+        }
+      ]
+    },
+    "FileInstall": {
+      "type": "object",
+      "properties": {
+        "destination": {
+          "description": "Relative to the data folder, with `/` separators. Empty means the root.",
+          "type": "string"
+        },
+        "is_folder": {
+          "type": "boolean"
+        },
+        "priority": {
+          "description": "Higher priority overrides lower where files collide.",
+          "type": "integer",
+          "format": "int32"
+        },
+        "source": {
+          "description": "Relative to [`FomodInfo::base`], with `/` separators.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "destination",
+        "is_folder",
+        "priority"
+      ]
+    },
+    "FlagSetting": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ]
+    },
+    "FomodInfo": {
+      "type": "object",
+      "properties": {
+        "base": {
+          "description": "Folder the installer's relative paths start from (the parent of its\n`fomod/` folder), relative to the scanned root. Empty for the root.",
+          "type": "string"
+        },
+        "conditional_installs": {
+          "description": "Installed when their condition holds after all steps.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ConditionalInstall"
+          }
+        },
+        "module_image": {
+          "description": "The installer's banner picture, relative to the scanned root.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "module_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "required_files": {
+          "description": "Installed regardless of choices.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FileInstall"
+          }
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Step"
+          }
+        }
+      },
+      "required": [
+        "base",
+        "required_files",
+        "steps",
+        "conditional_installs"
+      ]
+    },
+    "FomodOption": {
+      "type": "object",
+      "properties": {
+        "default_type": {
+          "description": "Type when no pattern matches.",
+          "$ref": "#/$defs/OptionType"
+        },
+        "description": {
+          "type": "string"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FileInstall"
+          }
+        },
+        "image": {
+          "description": "The option's picture, relative to the scanned root.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "name": {
+          "type": "string"
+        },
+        "sets_flags": {
+          "description": "Flags set when this option is selected.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FlagSetting"
+          }
+        },
+        "type_patterns": {
+          "description": "Flag-dependent overrides, first match wins.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TypePattern"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "default_type",
+        "type_patterns",
+        "sets_flags",
+        "files"
+      ]
+    },
+    "Group": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/GroupKind"
+        },
+        "name": {
+          "type": "string"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FomodOption"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "kind",
+        "options"
+      ]
+    },
+    "GroupKind": {
+      "type": "string",
+      "enum": [
+        "select_all",
+        "select_any",
+        "select_exactly_one",
+        "select_at_least_one",
+        "select_at_most_one"
+      ]
+    },
+    "InfoField": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ]
+    },
+    "ModInfo": {
+      "description": "The installer's `fomod/info.xml`, all of it.",
+      "type": "object",
+      "properties": {
+        "author": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "description": "The author's full description, as written.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "other": {
+          "description": "Any other field the file has, so nothing the author wrote is dropped.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/InfoField"
+          }
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "website": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "other"
+      ]
+    },
+    "ModNotes": {
+      "type": "object",
+      "properties": {
+        "documents": {
+          "description": "Readme-like files, nearest the top of the folder first.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NoteDocument"
+          }
+        },
+        "info": {
+          "description": "From the installer's `info.xml`, if the mod has one.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ModInfo"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "documents"
+      ]
+    },
+    "NoteDocument": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "description": "Why the file could not be read, if it could not.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "$ref": "#/$defs/DocumentKind"
+        },
+        "path": {
+          "description": "Relative to the scanned folder.",
+          "type": "string"
+        },
+        "text": {
+          "description": "The text, for kinds that have any. HTML is turned into plain text.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "truncated": {
+          "description": "The file was longer than what is kept in `text`.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path",
+        "kind",
+        "truncated"
+      ]
+    },
+    "OptionType": {
+      "type": "string",
+      "enum": [
+        "required",
+        "recommended",
+        "optional",
+        "could_be_usable",
+        "not_usable"
+      ]
+    },
+    "PluginInfo": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "description": "Set when the header could not be parsed. The plugin is still listed.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "masters": {
+          "description": "Masters from the plugin header; empty if none or if it could not be read.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "masters"
+      ]
+    },
+    "Step": {
+      "type": "object",
+      "properties": {
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Group"
+          }
+        },
+        "name": {
+          "type": "string"
+        },
+        "visible": {
+          "description": "Step is shown only when this holds. `None` means always.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Condition"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "groups"
+      ]
+    },
+    "TypePattern": {
+      "type": "object",
+      "properties": {
+        "condition": {
+          "$ref": "#/$defs/Condition"
+        },
+        "kind": {
+          "$ref": "#/$defs/OptionType"
+        }
+      },
+      "required": [
+        "condition",
+        "kind"
+      ]
+    },
+    "Warning": {
+      "oneOf": [
+        {
+          "description": "More than one candidate; a human must choose which to use.",
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "multiple_candidates"
+            }
+          },
+          "required": [
+            "kind",
+            "count"
+          ]
+        },
+        {
+          "description": "A candidate's path suggests it is a manual-install alternative.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "manual_install_folder"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ]
+        },
+        {
+          "description": "A FOMOD installer was found; options need resolving.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "fomod"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ]
+        },
+        {
+          "description": "A FOMOD installer was found but its ModuleConfig.xml could not be read.",
+          "type": "object",
+          "properties": {
+            "error": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "fomod_unreadable"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path",
+            "error"
+          ]
+        },
+        {
+          "description": "Subdirectories below this path were not searched because of the depth\nlimit, so the result may be incomplete.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "depth_limit_reached"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ]
+        },
+        {
+          "description": "Nothing that looks like a data path was found.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "no_candidates"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    }
+  }
+}

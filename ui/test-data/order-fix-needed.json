@@ -1,0 +1,27 @@
+{
+  "changed": true,
+  "order": [
+    "Lib",
+    "Patch",
+    "Other"
+  ],
+  "moves": [
+    {
+      "name": "Lib",
+      "from": 2,
+      "to": 0
+    },
+    {
+      "name": "Patch",
+      "from": 0,
+      "to": 1
+    },
+    {
+      "name": "Other",
+      "from": 1,
+      "to": 2
+    }
+  ],
+  "plugin_reorders": [],
+  "cyclic_mods": []
+}

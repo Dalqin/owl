@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ApplyOutcome",
+  "type": "object",
+  "properties": {
+    "backup": {
+      "description": "Where the previous file was saved, if there was one and it changed.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "changed": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "changed"
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "cfg_path": "/home/u/.config/openmw/openmw.cfg",
+  "issues": [
+    {
+      "kind": "missing_master",
+      "plugin": "Variant.ESP",
+      "master": "Tribunal.esm"
+    }
+  ],
+  "added": [
+    "data=\"/fixtures/multi-variant/10 Plugin\"",
+    "content=Variant.ESP"
+  ],
+  "removed": [],
+  "diff": [
+    {
+      "kind": "context",
+      "old_line": 1,
+      "new_line": 1,
+      "text": "content=Morrowind.esm"
+    },
+    {
+      "kind": "added",
+      "old_line": null,
+      "new_line": 2,
+      "text": "# >>> owl managed: do not edit between these markers >>>"
+    },
+    {
+      "kind": "added",
+      "old_line": null,
+      "new_line": 3,
+      "text": "data=\"/fixtures/multi-variant/10 Plugin\""
+    },
+    {
+      "kind": "added",
+      "old_line": null,
+      "new_line": 4,
+      "text": "content=Variant.ESP"
+    },
+    {
+      "kind": "added",
+      "old_line": null,
+      "new_line": 5,
+      "text": "# <<< owl managed <<<"
+    }
+  ],
+  "kept": [],
+  "skipped_duplicates": [],
+  "changed": true,
+  "fingerprint": "8fc7eb22d4a4dfb0"
+}

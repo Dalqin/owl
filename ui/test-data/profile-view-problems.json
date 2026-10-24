@@ -1,0 +1,327 @@
+{
+  "mods": [
+    {
+      "manifest": {
+        "schema_version": 1,
+        "name": "Variant",
+        "version": null,
+        "source": null,
+        "derived": {
+          "datapath_candidates": [
+            {
+              "path": "00 Core",
+              "engine_dirs": [
+                "Meshes",
+                "Textures"
+              ],
+              "plugins": []
+            },
+            {
+              "path": "000 MANUAL INSTALL ONLY",
+              "engine_dirs": [
+                "Meshes"
+              ],
+              "plugins": [
+                {
+                  "name": "Variant.ESP",
+                  "masters": [
+                    "Morrowind.esm",
+                    "Tribunal.esm"
+                  ],
+                  "error": null
+                }
+              ]
+            },
+            {
+              "path": "10 Plugin",
+              "engine_dirs": [],
+              "plugins": [
+                {
+                  "name": "Variant.ESP",
+                  "masters": [
+                    "Morrowind.esm",
+                    "Tribunal.esm"
+                  ],
+                  "error": null
+                }
+              ]
+            },
+            {
+              "path": "20 Alt Plugin",
+              "engine_dirs": [],
+              "plugins": [
+                {
+                  "name": "Alt.esp",
+                  "masters": [],
+                  "error": "not a TES3 plugin (missing TES3 header record)"
+                }
+              ]
+            }
+          ],
+          "fomod": null,
+          "notes": {
+            "info": null,
+            "documents": [
+              {
+                "path": "Docs/readme.txt",
+                "kind": "text",
+                "text": "placeholder\n",
+                "truncated": false,
+                "error": null
+              }
+            ]
+          }
+        },
+        "decisions": {
+          "datapaths": [
+            "10 Plugin"
+          ],
+          "enabled_plugins": [
+            "Variant.ESP"
+          ],
+          "load_after": [],
+          "fomod_choices": []
+        }
+      },
+      "root": "/fixtures/multi-variant",
+      "root_exists": true
+    },
+    {
+      "manifest": {
+        "schema_version": 1,
+        "name": "Undecided",
+        "version": null,
+        "source": null,
+        "derived": {
+          "datapath_candidates": [
+            {
+              "path": "00 Core",
+              "engine_dirs": [
+                "Meshes",
+                "Textures"
+              ],
+              "plugins": []
+            },
+            {
+              "path": "000 MANUAL INSTALL ONLY",
+              "engine_dirs": [
+                "Meshes"
+              ],
+              "plugins": [
+                {
+                  "name": "Variant.ESP",
+                  "masters": [
+                    "Morrowind.esm",
+                    "Tribunal.esm"
+                  ],
+                  "error": null
+                }
+              ]
+            },
+            {
+              "path": "10 Plugin",
+              "engine_dirs": [],
+              "plugins": [
+                {
+                  "name": "Variant.ESP",
+                  "masters": [
+                    "Morrowind.esm",
+                    "Tribunal.esm"
+                  ],
+                  "error": null
+                }
+              ]
+            },
+            {
+              "path": "20 Alt Plugin",
+              "engine_dirs": [],
+              "plugins": [
+                {
+                  "name": "Alt.esp",
+                  "masters": [],
+                  "error": "not a TES3 plugin (missing TES3 header record)"
+                }
+              ]
+            }
+          ],
+          "fomod": null,
+          "notes": {
+            "info": null,
+            "documents": [
+              {
+                "path": "Docs/readme.txt",
+                "kind": "text",
+                "text": "placeholder\n",
+                "truncated": false,
+                "error": null
+              }
+            ]
+          }
+        },
+        "decisions": {
+          "datapaths": [],
+          "enabled_plugins": [],
+          "load_after": [],
+          "fomod_choices": []
+        }
+      },
+      "root": "/fixtures/multi-variant",
+      "root_exists": true
+    },
+    {
+      "manifest": {
+        "schema_version": 1,
+        "name": "Gone",
+        "version": null,
+        "source": null,
+        "derived": {
+          "datapath_candidates": [
+            {
+              "path": "",
+              "engine_dirs": [
+                "Meshes",
+                "Textures"
+              ],
+              "plugins": [
+                {
+                  "name": "Simple.esp",
+                  "masters": [
+                    "Morrowind.esm"
+                  ],
+                  "error": null
+                }
+              ]
+            }
+          ],
+          "fomod": null,
+          "notes": {
+            "info": null,
+            "documents": []
+          }
+        },
+        "decisions": {
+          "datapaths": [
+            ""
+          ],
+          "enabled_plugins": [
+            "Simple.esp"
+          ],
+          "load_after": [],
+          "fomod_choices": []
+        }
+      },
+      "root": "/fixtures/no-such-folder",
+      "root_exists": false
+    }
+  ],
+  "check": {
+    "issues": [
+      {
+        "kind": "undecided",
+        "mod_name": "Undecided"
+      },
+      {
+        "kind": "datapath_not_found",
+        "mod_name": "Gone",
+        "path": "/fixtures/no-such-folder"
+      },
+      {
+        "kind": "missing_master",
+        "plugin": "Variant.ESP",
+        "master": "Tribunal.esm"
+      }
+    ],
+    "mods": [
+      {
+        "mod_name": "Variant",
+        "requirements": [
+          {
+            "kind": "master",
+            "name": "Morrowind.esm",
+            "status": "satisfied",
+            "needed_by": [
+              "Variant.ESP"
+            ]
+          },
+          {
+            "kind": "master",
+            "name": "Tribunal.esm",
+            "status": "missing",
+            "needed_by": [
+              "Variant.ESP"
+            ]
+          }
+        ],
+        "issues": [
+          {
+            "kind": "missing_master",
+            "plugin": "Variant.ESP",
+            "master": "Tribunal.esm"
+          }
+        ]
+      },
+      {
+        "mod_name": "Undecided",
+        "requirements": [],
+        "issues": [
+          {
+            "kind": "undecided",
+            "mod_name": "Undecided"
+          }
+        ]
+      },
+      {
+        "mod_name": "Gone",
+        "requirements": [
+          {
+            "kind": "master",
+            "name": "Morrowind.esm",
+            "status": "satisfied",
+            "needed_by": [
+              "Simple.esp"
+            ]
+          }
+        ],
+        "issues": [
+          {
+            "kind": "datapath_not_found",
+            "mod_name": "Gone",
+            "path": "/fixtures/no-such-folder"
+          }
+        ]
+      }
+    ],
+    "load_order": [
+      {
+        "plugin": "Morrowind.esm",
+        "source": {
+          "kind": "user_config"
+        },
+        "masters": []
+      },
+      {
+        "plugin": "Variant.ESP",
+        "source": {
+          "kind": "mod",
+          "name": "Variant"
+        },
+        "masters": [
+          "Morrowind.esm",
+          "Tribunal.esm"
+        ]
+      },
+      {
+        "plugin": "Simple.esp",
+        "source": {
+          "kind": "mod",
+          "name": "Gone"
+        },
+        "masters": [
+          "Morrowind.esm"
+        ]
+      }
+    ]
+  },
+  "libraries": [],
+  "individuals": []
+}

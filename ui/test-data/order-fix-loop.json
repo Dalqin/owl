@@ -1,0 +1,13 @@
+{
+  "changed": false,
+  "order": [
+    "X",
+    "Y"
+  ],
+  "moves": [],
+  "plugin_reorders": [],
+  "cyclic_mods": [
+    "X",
+    "Y"
+  ]
+}
