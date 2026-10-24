@@ -4,11 +4,24 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    groups:
+      # One PR a week for all minor and patch updates. Major versions get their own PRs.
+      cargo-minor-and-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
   - package-ecosystem: npm
     directory: /ui
     schedule:
       interval: weekly
+    groups:
+      npm-minor-and-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    groups:
+      actions-minor-and-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
