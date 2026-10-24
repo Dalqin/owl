@@ -93,7 +93,9 @@ cargo update --workspace --quiet
 [ "$(jq -r .version ui/package-lock.json)" = "$version" ] || die "package-lock.json was not updated"
 
 run() {
-  echo "+ $*"
+  printf '+'
+  printf ' %q' "$@"
+  echo
   "$@"
 }
 run git add "${files[@]}"
