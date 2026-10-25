@@ -1,6 +1,6 @@
 # owl-core (library)
 
-The Rust library behind `owl`. It does no printing and no prompting: every function returns structured data, so the CLI and a future UI render the same results.
+The Rust library behind `owl`. It does no printing and no prompting: every function returns structured data, so the CLI and the app render the same results.
 
 ## Modules
 
@@ -15,6 +15,11 @@ The Rust library behind `owl`. It does no printing and no prompting: every funct
 | `locate` | Finds the player's `openmw.cfg` (explicit path, XDG, Flatpak) and the per-user folder where Owl keeps their profile (`store_dir`, per platform). Environment and filesystem are passed in, so it is testable. Shared by the CLI and the app. |
 | `apply` | `plan()` works out the new `openmw.cfg` and describes it (`ApplyPlan`: problems, lines added and removed, entries left alone, a fingerprint) without writing. `apply()` recomputes it, refuses if there are problems (unless forced) or if what it would write no longer matches the fingerprint the player reviewed, backs up the old file next to it, and writes. Shared by the CLI and the app. |
 | `order_fix` | `plan_fix()` works out how to reorder mods so every plugin follows its masters: a needed mod is pulled up to just before the first mod that needs it, everything else keeps its place; plugins inside a mod are ordered the same way; a loop of mods is reported and nothing changes. `profile::fix_order()` carries it out on a profile file. |
+| `library` | `classify()` says whether a folder is one mod or a folder of many; `read_library()` lists the mods in it, quickly, without scanning each one, and marks which are already in the player's `openmw.cfg`. |
+| `notes` | `collect()` gathers what a mod's author left for installers: `fomod/info.xml` and readme-like files, decoded and (for HTML) turned to text. Facts only; nothing is acted on. |
+| `images` | `read_image()` reads an installer's banner or option picture for a front end. The path comes from the mod, so it must stay inside the mod folder, may not be a symlink, and must be a real image of a kind a browser shows (size-capped). |
+| `diff` | `diff()` / `diff_with_anchors()`: a line diff of a whole file, trimmed to the changes plus context, with old and new line numbers. Used for the review screen. |
+| `plugin_order` | `ordered()` works out the `content=` order separately from `data=`: mods in order, plugins in order, then each plugin others need is pulled up to just before the first that needs it. Worked out every time from the plugins' masters; nothing is stored. |
 | `schemas` | The registry of published JSON Schemas (`schemas::ALL`), generated from the Rust types. |
 | `validate` | `check()` returns a `CheckReport`: the validation issues, what each mod needs and whether it is satisfied, and the flat plugin `load_order` (`build_order`, which says who put each plugin there); this is what front ends show. `validate()` is the issues part alone. It checks a planned load order (issues implement `Display` for UIs and the CLI): missing masters, masters loaded after their plugin, duplicate plugins, missing data paths, undecided or stale mods, unreadable plugins. |
 

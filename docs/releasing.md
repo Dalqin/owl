@@ -1,6 +1,6 @@
 # Releasing
 
-CI (`.github/workflows/ci.yml`) runs on every push to `main` and on pull requests, on Linux and Windows: UI tests and build, `cargo fmt --check`, clippy with warnings denied, and the Rust tests.
+CI (`.github/workflows/ci.yml`) runs on every push to `main` and on pull requests, on Linux and Windows: UI tests and build, `cargo fmt --check`, and the Rust tests.
 
 ## Cutting a release
 

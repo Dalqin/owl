@@ -2,7 +2,7 @@
 
 `owl` helps set up OpenMW mods without hand-editing `openmw.cfg`.
 
-> Status: early. `scan`, `init`, `check` and `apply` work. Nothing here has been tried against a live game by anyone but the developer; use `--dry-run` first.
+> Status: early. `scan`, `library`, `init`, `check`, `fix-order` and `apply` work. Nothing here has been tried against a live game by anyone but the developer; use `--dry-run` first.
 
 ## Install and run
 
@@ -13,6 +13,12 @@ cargo build --release -p owl      # binary at target/release/owl
 
 ## Commands
 
+`owl --help` lists the commands and `owl <command> --help` describes each one's flags. This page covers behaviour that help text cannot.
+
+### `owl library <DIR>`
+
+Says whether a folder is one mod or a folder of many, and lists the mods in it. `--json` for machine output. Read-only.
+
 ### `owl scan <DIR>`
 
 Looks inside a mod folder and reports what it found: which subfolders could be used as OpenMW data paths, which plugins they contain, and which master plugins each plugin needs. Read-only; changes nothing.
@@ -22,11 +28,6 @@ owl scan ./MyMod
 owl scan ./MyMod --json
 owl scan ./MyMod --max-depth 3
 ```
-
-| Flag | Default | Meaning |
-|---|---|---|
-| `--json` | off | Print the full report as JSON instead of a summary |
-| `--max-depth N` | 6 | How many folder levels below `DIR` to search. The folder you give is level 0. |
 
 If the mod ships a FOMOD installer, `scan` also prints what that installer asks, as plain steps, groups and options (see [FOMOD installers](#fomod-installers)).
 
@@ -45,17 +46,6 @@ owl init ./MyMod --profile my.profile.json   # also add it to your profile
 ```
 
 If the scan finds more than one possible data path, `init` still writes the manifest but lists the candidates and asks you to choose with `--datapath` (re-run with `--force`). By default every plugin in the chosen data paths is enabled; use `--plugin NAME` to pick specific ones.
-
-| Flag | Meaning |
-|---|---|
-| `--name N` | Mod name (default: folder name) |
-| `--out FILE` | Manifest path (default `./<name>.owl.json`); refuses to overwrite without `--force` |
-| `--profile FILE` | Append the mod to the end of this profile (created if missing) |
-| `--datapath P` | Data path to use, relative to `DIR`; repeatable |
-| `--option "Group=Option"` | Answer a FOMOD installer question; repeatable. Use `"Step/Group=Option"` if two steps have a group with the same name. Cannot be combined with `--datapath`/`--plugin` |
-| `--plugin NAME` | Plugin to enable; repeatable |
-| `--force` | Overwrite an existing manifest |
-| `--max-depth N` | As for `scan` |
 
 ## FOMOD installers
 

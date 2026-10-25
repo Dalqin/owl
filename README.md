@@ -11,7 +11,7 @@ Owl is a mod manager for [OpenMW](https://openmw.org). You point it at the mods 
 
 ![Owl showing a mod list in load order, and the installer questions for one mod](docs/images/main-window.png)
 
-## Getting started
+## Getting started: running the app
 
 ### 1. You need
 
@@ -73,6 +73,33 @@ When you're happy, go to **Review and finalize**, press **Review changes**, chec
 ![The review screen: the plugin load order, and the exact lines Owl will add to openmw.cfg](docs/images/review.png)
 
 Start OpenMW as you normally do. The app's **Help** page covers the same steps.
+
+## Getting started: developing the app
+
+This is for working on Owl itself. To just use it, see [Getting started: running the app](#getting-started-running-the-app).
+
+### What to install
+
+- **Rust**, with `cargo`, from [rustup.rs](https://rustup.rs).
+- **Node.js 22** (CI uses 22), which includes `npm`.
+- **[`just`](https://github.com/casey/just)**, the command runner: `cargo install just`, or use your package manager.
+- **The system libraries Tauri needs** to build the desktop app:
+  - **Linux:** on Debian/Ubuntu, `sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev librsvg2-dev libayatana-appindicator3-dev patchelf`. Other distributions have equivalents; see the [Tauri prerequisites](https://tauri.app/start/prerequisites/).
+  - **Windows:** the Visual Studio C++ build tools and WebView2, as listed in the same Tauri guide.
+
+### Commands
+
+Run these from the repository root. `just` on its own lists them.
+
+| Command | What it does |
+|---|---|
+| `just setup` | Installs the UI's npm dependencies. Run it once after cloning. |
+| `just run` | Starts the desktop app for development. Extra arguments go to `tauri dev`. |
+| `just build` | Builds the UI, then the whole Rust workspace. |
+| `just test` | Runs the UI tests, then the Rust tests. |
+| `just release X.Y.Z` | Prepares a release. Add `--dry-run` to preview. See [Releasing](docs/releasing.md). |
+
+CI also runs `cargo fmt --check`, so run `cargo fmt` before pushing.
 
 ## Documentation
 
