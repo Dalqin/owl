@@ -311,14 +311,26 @@ mod tests {
 
     #[test]
     fn native_default_uses_home_dot_config() {
-        let got = resolve(None, &env_of(&[("HOME", "/home/u")]), &exists_in(&[NATIVE])).unwrap();
+        let got = resolve_for(
+            Os::Linux,
+            None,
+            &env_of(&[("HOME", "/home/u")]),
+            &exists_in(&[NATIVE]),
+        )
+        .unwrap();
         assert_eq!(got, PathBuf::from(NATIVE));
     }
 
     #[test]
     fn xdg_config_home_overrides_default() {
         let env = env_of(&[("HOME", "/home/u"), ("XDG_CONFIG_HOME", "/cfg")]);
-        let got = resolve(None, &env, &exists_in(&["/cfg/openmw/openmw.cfg"])).unwrap();
+        let got = resolve_for(
+            Os::Linux,
+            None,
+            &env,
+            &exists_in(&["/cfg/openmw/openmw.cfg"]),
+        )
+        .unwrap();
         assert_eq!(got, PathBuf::from("/cfg/openmw/openmw.cfg"));
     }
 
@@ -329,20 +341,21 @@ mod tests {
             ("FLATPAK_ID", "app.owl.openmw"),
             ("XDG_CONFIG_HOME", "/home/u/.var/app/app.owl.openmw/config"),
         ]);
-        let got = resolve(None, &env, &exists_in(&[NATIVE])).unwrap();
+        let got = resolve_for(Os::Linux, None, &env, &exists_in(&[NATIVE])).unwrap();
         assert_eq!(got, PathBuf::from(NATIVE));
     }
 
     #[test]
     fn relative_xdg_is_ignored_per_spec() {
         let env = env_of(&[("HOME", "/home/u"), ("XDG_CONFIG_HOME", "rel")]);
-        let got = resolve(None, &env, &exists_in(&[NATIVE])).unwrap();
+        let got = resolve_for(Os::Linux, None, &env, &exists_in(&[NATIVE])).unwrap();
         assert_eq!(got, PathBuf::from(NATIVE));
     }
 
     #[test]
     fn flatpak_used_when_only_it_exists() {
-        let got = resolve(
+        let got = resolve_for(
+            Os::Linux,
             None,
             &env_of(&[("HOME", "/home/u")]),
             &exists_in(&[FLATPAK]),
@@ -353,7 +366,8 @@ mod tests {
 
     #[test]
     fn both_existing_is_ambiguous() {
-        let err = resolve(
+        let err = resolve_for(
+            Os::Linux,
             None,
             &env_of(&[("HOME", "/home/u")]),
             &exists_in(&[NATIVE, FLATPAK]),
@@ -364,7 +378,13 @@ mod tests {
 
     #[test]
     fn neither_existing_lists_what_was_tried() {
-        let err = resolve(None, &env_of(&[("HOME", "/home/u")]), &exists_in(&[])).unwrap_err();
+        let err = resolve_for(
+            Os::Linux,
+            None,
+            &env_of(&[("HOME", "/home/u")]),
+            &exists_in(&[]),
+        )
+        .unwrap_err();
         match err {
             ConfigError::NotFound { tried } => assert_eq!(tried.len(), 2),
             other => panic!("unexpected {other:?}"),
@@ -373,7 +393,7 @@ mod tests {
 
     #[test]
     fn no_home_and_no_xdg_is_an_error() {
-        let err = resolve(None, &env_of(&[]), &exists_in(&[])).unwrap_err();
+        let err = resolve_for(Os::Linux, None, &env_of(&[]), &exists_in(&[])).unwrap_err();
         assert!(matches!(err, ConfigError::NoHome));
     }
 
