@@ -9,7 +9,7 @@ setup:
 
 # Start the app for development; extra arguments go to `tauri dev`.
 run *args:
-    sh ui/scripts/dev-app.sh {{args}}
+    cd ui && sh scripts/dev-app.sh {{args}}
 
 # Build everything. The app crate embeds ui/dist, so the UI goes first.
 build:
