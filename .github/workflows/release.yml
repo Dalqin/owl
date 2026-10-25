@@ -16,6 +16,8 @@ jobs:
       release_id: ${{ steps.create.outputs.release_id }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the commit list needs history and the earlier tags
 
       - name: Check the tag matches the app versions
         run: |
@@ -27,15 +29,30 @@ jobs:
           [ "$tag" = "$cargo_v" ] && [ "$tag" = "$tauri_v" ] && [ "$tag" = "$npm_v" ] || {
             echo "::error::Tag $GITHUB_REF_NAME does not match the versions above"; exit 1; }
 
+      - name: List the commits since the last release
+        run: |
+          # Subjects of our own commits since the previous release tag, newest first.
+          # Merges and chore, docs, build and ci commits (dependency bumps, release
+          # commits) are left out; the generated list below still shows merged pull requests.
+          previous=$(git describe --tags --abbrev=0 --match 'v*' "$GITHUB_REF_NAME^" 2>/dev/null || true)
+          : > commits.md
+          if [ -n "$previous" ]; then
+            list=$(git log --no-merges --pretty='- %s' "$previous..$GITHUB_REF_NAME" |
+              grep -Ev '^- (build|ci|chore|docs)(\(.*\))?!?:' || true)
+            if [ -n "$list" ]; then
+              printf '## Commits since %s\n\n%s\n\n' "$previous" "$list" > commits.md
+            fi
+          fi
+
       - name: Create the draft release
         id: create
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Our intro first, then GitHub's generated list of changes.
+          # Our intro first, then the commit list, then GitHub's generated list of changes.
           generated=$(gh api -X POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
             -f tag_name="$GITHUB_REF_NAME" --jq .body)
-          { cat .github/release-intro.md; printf '%s\n' "$generated"; } > release-notes.md
+          { cat .github/release-intro.md; cat commits.md; printf '%s\n' "$generated"; } > release-notes.md
           # Create the draft through the API so its id comes straight from the response.
           id=$(jq -n --arg tag "$GITHUB_REF_NAME" --arg name "Owl $GITHUB_REF_NAME" \
               --rawfile body release-notes.md \
