@@ -1,6 +1,10 @@
 # 0001: Distribute as a Flatpak with manifest grants
 
-Status: accepted (2026-10-23). The Flatpak is untested; see "Open questions".
+Status: deferred. Accepted 2026-10-23; packaging removed 2026-10-25. The Flatpak was never built or tested; see "Open questions".
+
+## Outcome
+
+We have a path forward if Flatpaks get requested, but for now the feature is deferred. The `packaging/flatpak/` directory was removed because nothing in CI used it. The decision below describes the approach to resume from, and the manifest can be recovered from git history (commit `6e3387b`).
 
 ## Context
 
