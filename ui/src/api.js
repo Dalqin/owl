@@ -4,6 +4,15 @@ import { open } from "@tauri-apps/plugin-dialog";
 
 export const locateConfig = () => invoke("locate_config");
 
+// Pick an openmw.cfg by hand when it is not in the usual place. Resolves to its path.
+export const chooseConfigFile = async () => {
+  const picked = await open({ multiple: false, title: "Choose your openmw.cfg" });
+  return picked ? invoke("choose_config", { path: picked }) : null;
+};
+
+// Go back to finding openmw.cfg automatically.
+export const forgetChosenConfig = () => invoke("forget_chosen_config");
+
 export const chooseFolder = () => open({ directory: true, multiple: false, title: "Choose a mod folder" });
 
 export const scanFolder = (path) => invoke("scan_folder", { path });

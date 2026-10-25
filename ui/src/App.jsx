@@ -35,6 +35,16 @@ export default function App() {
     );
   }, []);
 
+  // Lets the player point at an openmw.cfg that is not in the usual place.
+  async function chooseConfig() {
+    try {
+      const path = await api.chooseConfigFile();
+      if (path) setCfg({ ready: true, path, error: null });
+    } catch (e) {
+      setCfg((c) => ({ ...c, error: String(e) }));
+    }
+  }
+
   // Re-reads the player's list and returns it.
   const reload = useCallback(async () => {
     try {
@@ -150,11 +160,16 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1><OwlLogo />Owl</h1>
-        <p className="muted">Set up Morrowind mods for OpenMW.</p>
-        <p className="muted" data-testid="cfg-status">
+        <span className="owl-logo"><OwlLogo /></span>
+        <h1 className="owl-title">Owl</h1>
+        <p className="muted owl-subtitle">Set up Morrowind mods for OpenMW.</p>
+        <p className="muted config-path" data-testid="cfg-status">
           {cfg.path ? `Your OpenMW settings: ${cfg.path}` : `Could not find your OpenMW settings. ${cfg.error ?? ""}`}
         </p>
+        <button type="button" className="config-path-button" onClick={chooseConfig}>
+          {cfg.path ? "Use a different file" : "Choose the file"}
+        </button>
+        {cfg.path && cfg.error && <p className="muted config-error">{cfg.error}</p>}
       </header>
 
       {view ? (

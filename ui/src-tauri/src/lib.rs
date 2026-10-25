@@ -20,9 +20,21 @@ type CmdResult<T> = Result<T, String>;
 /// Where the player's `openmw.cfg` is, or why it could not be found.
 #[tauri::command]
 fn locate_config() -> CmdResult<String> {
-    locate::resolve(None, &|k| std::env::var_os(k), &|p| p.exists())
-        .map(|p| p.to_string_lossy().into_owned())
-        .map_err(|e| e.to_string())
+    target_cfg().map(|p| p.to_string_lossy().into_owned())
+}
+
+/// Uses an `openmw.cfg` the player picked by hand, for when it is not in the
+/// usual place. Only an existing file named `openmw.cfg` is accepted.
+#[tauri::command]
+fn choose_config(path: String) -> CmdResult<String> {
+    locate::choose_config(&store_dir()?, &PathBuf::from(&path)).map_err(|e| e.to_string())?;
+    locate_config()
+}
+
+/// Goes back to finding `openmw.cfg` automatically.
+#[tauri::command]
+fn forget_chosen_config() -> CmdResult<()> {
+    locate::forget_chosen_config(&store_dir()?).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -205,10 +217,13 @@ fn stored_mods() -> CmdResult<Vec<LoadedMod>> {
     profile::load_mods(&path).map_err(|e| e.to_string())
 }
 
-/// The `openmw.cfg` to write. Found here, never taken from the page, so the
-/// page cannot point a write at some other file.
+/// The `openmw.cfg` to use: the one the player picked, else the one found in the
+/// usual places. Decided here, never passed in with a write, and a choice is only
+/// stored if it is an existing file named `openmw.cfg`, so the page cannot point
+/// a write at some other file.
 fn target_cfg() -> CmdResult<PathBuf> {
-    locate::resolve(None, &|k| std::env::var_os(k), &|p| p.exists()).map_err(|e| e.to_string())
+    let chosen = locate::chosen_config(&store_dir()?);
+    locate::resolve(chosen, &|k| std::env::var_os(k), &|p| p.exists()).map_err(|e| e.to_string())
 }
 
 /// What applying would do. Writes nothing.
@@ -242,6 +257,8 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             locate_config,
+            choose_config,
+            forget_chosen_config,
             scan_folder,
             preview_mod,
             preview_stored_mod,

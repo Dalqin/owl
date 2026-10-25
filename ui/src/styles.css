@@ -104,7 +104,20 @@ ul.fix-moves { margin: 0 0 8px; padding-left: 20px; }
 ol.fix-order { margin: 0 0 8px; padding-left: 24px; }
 .app { min-height: 100vh; display: flex; flex-direction: column; }
 .app-header { position: sticky; top: 0; z-index: 10; }
-.app-header { background: var(--header-bg); color: var(--header-fg); padding: 14px 24px 12px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 20px; border-bottom: 3px solid var(--accent); }
+.app-header {
+  background: var(--header-bg); color: var(--header-fg); padding: 14px 24px 12px; border-bottom: 3px solid var(--accent);
+  /* The subtitle spans the empty third column too, so its width goes there and not into the logo and title columns. */
+  display: grid; grid-template-columns: auto auto minmax(0, 1fr) minmax(0, auto); column-gap: 8px; row-gap: 2px; align-items: center;
+  grid-template-areas:
+    "owl-logo owl-title . config-path"
+    "owl-subtitle owl-subtitle owl-subtitle config-path-button";
+}
+.owl-logo { grid-area: owl-logo; display: inline-flex; }
+.owl-title { grid-area: owl-title; justify-self: start; text-align: left; }
+.owl-subtitle { grid-area: owl-subtitle; }
+.config-path { grid-area: config-path; justify-self: end; text-align: right; overflow-wrap: anywhere; }
+.config-path-button { grid-area: config-path-button; justify-self: end; padding: 4px 10px; font-size: .9em; }
+.config-error { grid-column: 4; justify-self: end; text-align: right; }
 .app-header h1 { margin: 0; font-size: 1.5rem; letter-spacing: .02em; }
 .app-header h1 { display: inline-flex; align-items: center; gap: 8px; }
 .app-header .logo { color: var(--accent); }

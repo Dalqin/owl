@@ -20,6 +20,7 @@ import App from "./App.jsx";
 
 vi.mock("./api.js", () => ({
   locateConfig: vi.fn(),
+  chooseConfigFile: vi.fn(),
   chooseFolder: vi.fn(),
   addSource: vi.fn(),
   removeSource: vi.fn(),
@@ -103,6 +104,23 @@ describe("App shell", () => {
     api.locateConfig.mockRejectedValue("no openmw.cfg found");
     render(<App />);
     expect(await screen.findByText(/Could not find your OpenMW settings/)).toBeInTheDocument();
+  });
+
+  it("lets the player pick an openmw.cfg that was not found, then reloads from it", async () => {
+    api.locateConfig.mockRejectedValue("no openmw.cfg found");
+    api.chooseConfigFile.mockResolvedValue("D:\\Games\\OpenMW\\openmw.cfg");
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Choose the file" }));
+    expect(await screen.findByText(/D:\\Games\\OpenMW\\openmw\.cfg/)).toBeInTheDocument();
+    await waitFor(() => expect(api.loadProfile).toHaveBeenLastCalledWith("D:\\Games\\OpenMW\\openmw.cfg"));
+  });
+
+  it("keeps the current file and says why when the chosen one is refused", async () => {
+    api.chooseConfigFile.mockRejectedValue("settings.cfg is not an openmw.cfg file");
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Use a different file" }));
+    expect(await screen.findByText(/is not an openmw\.cfg file/)).toBeInTheDocument();
+    expect(screen.getByTestId("cfg-status")).toHaveTextContent("/home/u/.config/openmw/openmw.cfg");
   });
 
   it("starts on the sources when the list is empty", async () => {

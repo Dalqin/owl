@@ -100,13 +100,16 @@ Used by `check` and `apply`, in this order:
 2. `$XDG_CONFIG_HOME/openmw/openmw.cfg` (must be an absolute path), else `~/.config/openmw/openmw.cfg`.
 3. `~/.var/app/org.openmw.OpenMW/config/openmw/openmw.cfg` (Flatpak).
 
+On Windows and macOS the usual OpenMW folders are tried instead: `%USERPROFILE%\Documents\My Games\OpenMW\openmw.cfg` (then the same under `OneDrive`) and `~/Library/Preferences/openmw/openmw.cfg`. The Windows path is a best guess that has not been tried on a real Windows machine. In the desktop app, **Use a different file** lets you pick an `openmw.cfg` anywhere; the CLI uses `--cfg`.
+
 If both the native and the Flatpak file exist, Owl refuses to guess and asks for `--cfg`. If none exist it says where it looked; it never invents a new `openmw.cfg` in a guessed place.
 
 ## Files and environment variables
 
 | Name | Used by | Effect |
 |---|---|---|
-| `HOME` | `check`, `apply` | Locates `~/.config` and the Flatpak path. If unset and no `--cfg`, Owl asks for `--cfg`. |
+| `HOME` | `check`, `apply` | Locates `~/.config` and the Flatpak path (and the macOS path). If unset and no `--cfg`, Owl asks for `--cfg`. |
+| `USERPROFILE` | `check`, `apply` | Windows only: locates `Documents\My Games\OpenMW`. |
 | `XDG_CONFIG_HOME` | `check`, `apply` | Replaces `~/.config` when searching for `openmw/openmw.cfg`. Ignored if not an absolute path. |
 | `openmw.cfg` | `check`, `apply` | Read by both; `apply` modifies it |
 | `openmw.cfg.bak`, `.bak.N` | `apply` | Backups, in the same folder as the file they back up |
